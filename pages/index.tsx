@@ -12,6 +12,11 @@ export default function Home() {
   const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0, rotateZ: 0 });
   const animationFrameRef = useRef<number>();
   const [isBrowser, setIsBrowser] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  const [baseRotation, setBaseRotation] = useState({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+  const currentRotationRef = useRef({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+  const detectionStartTimeRef = useRef<number>(0);
+  const renderTimeRef = useRef<number>(0);
 
   // ブラウザ環境かどうかを確認
   useEffect(() => {
@@ -118,6 +123,9 @@ export default function Home() {
     const detectFace = async () => {
       if (videoRef.current && videoRef.current.readyState === 4) {
         try {
+          // 特徴点取得の直前の時間を記録
+          detectionStartTimeRef.current = performance.now();
+          
           const faces = await detector.estimateFaces(videoRef.current, {
             flipHorizontal: false
           });
@@ -125,7 +133,23 @@ export default function Home() {
           if (faces.length > 0) {
             const face = faces[0];
             const angles = calculateFaceAngles(face.keypoints);
-            setRotation(angles);
+            currentRotationRef.current = angles;
+
+            // スタート後のみ画面を傾ける（基準からの差分の2倍）
+            if (isStarted) {
+              setRotation({
+                rotateX: (angles.rotateX - baseRotation.rotateX) * 2,
+                rotateY: (angles.rotateY - baseRotation.rotateY) * 2,
+                rotateZ: (angles.rotateZ - baseRotation.rotateZ) * 2,
+              });
+              
+              // レンダリング完了時刻を記録（次のフレームで）
+              requestAnimationFrame(() => {
+                renderTimeRef.current = performance.now();
+                const totalTime = renderTimeRef.current - detectionStartTimeRef.current;
+                console.log(`特徴点取得〜画面反映: ${totalTime.toFixed(2)}ms`);
+              });
+            }
           }
         } catch (error) {
           console.error('顔検出エラー:', error);
@@ -142,7 +166,19 @@ export default function Home() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [detector, isModelLoaded]);
+  }, [detector, isModelLoaded, isStarted, baseRotation]);
+
+  // スタートボタンのハンドラー
+  const handleStart = () => {
+    setBaseRotation(currentRotationRef.current);
+    setIsStarted(true);
+  };
+
+  // ストップボタンのハンドラー
+  const handleStop = () => {
+    setIsStarted(false);
+    setRotation({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+  };
 
   // 3D変換を適用したコンテナのスタイル
   const containerStyle = {
@@ -225,7 +261,71 @@ export default function Home() {
           <p style={{ margin: '10px 0', fontSize: '18px' }}>
             <strong>Roll (傾き):</strong> {rotation.rotateZ.toFixed(1)}°
           </p>
+          {!isStarted && (
+            <p style={{ margin: '10px 0', fontSize: '14px', color: '#666', marginTop: '15px' }}>
+              スタートボタンを押すと、現在の姿勢を基準に画面が傾きます
+            </p>
+          )}
         </div>
+
+        {!isStarted ? (
+          <button
+            onClick={handleStart}
+            disabled={!isModelLoaded}
+            style={{
+              width: '100%',
+              padding: '30px',
+              fontSize: '28px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '15px',
+              background: isModelLoaded 
+                ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
+                : '#ccc',
+              color: 'white',
+              cursor: isModelLoaded ? 'pointer' : 'not-allowed',
+              transition: 'transform 0.2s, opacity 0.2s',
+              boxShadow: isModelLoaded ? '0 8px 25px rgba(17, 153, 142, 0.4)' : 'none',
+              marginBottom: '40px',
+            }}
+            onMouseEnter={(e) => {
+              if (isModelLoaded) {
+                e.currentTarget.style.transform = 'scale(1.02)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            {isModelLoaded ? 'スタート 🚀' : 'モデルを読み込み中...'}
+          </button>
+        ) : (
+          <button
+            onClick={handleStop}
+            style={{
+              width: '100%',
+              padding: '30px',
+              fontSize: '28px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '15px',
+              background: 'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'transform 0.2s, opacity 0.2s',
+              boxShadow: '0 8px 25px rgba(252, 74, 26, 0.4)',
+              marginBottom: '40px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            ストップ ⏸️
+          </button>
+        )}
 
         <div style={{
           display: 'grid',
@@ -260,22 +360,6 @@ export default function Home() {
             </button>
           ))}
         </div>
-
-        {!isModelLoaded && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: 'rgba(0,0,0,0.8)',
-            color: 'white',
-            padding: '30px',
-            borderRadius: '10px',
-            fontSize: '20px'
-          }}>
-            モデルを読み込み中...
-          </div>
-        )}
       </div>
 
       {/* 使い方の説明 */}
@@ -291,10 +375,10 @@ export default function Home() {
         maxWidth: '600px'
       }}>
         <p style={{ margin: '5px 0', fontSize: '16px' }}>
-          📹 カメラを許可して、顔を動かしてみてください
+          📹 カメラを許可して、スタートボタンを押してください
         </p>
         <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>
-          顔を左右・上下に動かすと画面が傾きます
+          スタート時の姿勢を基準に、顔の動きの2倍画面が傾きます
         </p>
       </div>
       </>

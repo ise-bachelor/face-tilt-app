@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FaceLandmarksDetector, Rotation } from '../types';
+import type { FaceLandmarksDetector, Rotation, ExperimentCondition, HeadPose, ScreenRotation } from '../types';
 import { KalmanFilter } from '../utils/KalmanFilter';
 import { calculateFaceAngles } from '../utils/faceAngles';
 
@@ -7,17 +7,29 @@ type UseFaceTrackingArgs = {
   videoRef: React.RefObject<HTMLVideoElement>;
   detector: FaceLandmarksDetector | null;
   isModelLoaded: boolean;
+  condition?: ExperimentCondition;
 };
 
 export const useFaceTracking = ({
   videoRef,
   detector,
   isModelLoaded,
+  condition = 'rotate',
 }: UseFaceTrackingArgs) => {
   const [rotation, setRotation] = useState<Rotation>({
     rotateX: 0,
     rotateY: 0,
     rotateZ: 0,
+  });
+  const [headPose, setHeadPose] = useState<HeadPose>({
+    pitch: 0,
+    yaw: 0,
+    roll: 0,
+  });
+  const [screenRotation, setScreenRotation] = useState<ScreenRotation>({
+    pitch: 0,
+    yaw: 0,
+    roll: 0,
   });
   const [isStarted, setIsStarted] = useState(false);
 
@@ -70,17 +82,37 @@ export const useFaceTracking = ({
             currentRotationRef.current = angles;
 
             if (isStarted) {
-              const rawRotation: Rotation = {
-                rotateX:
-                  (angles.rotateX - baseRotationRef.current.rotateX) * 2,
-                rotateY:
-                  (angles.rotateY - baseRotationRef.current.rotateY) * 2,
-                rotateZ:
-                  (angles.rotateZ - baseRotationRef.current.rotateZ) * 2,
+              // 頭部姿勢（基準との差分）
+              const headPoseDiff: HeadPose = {
+                pitch: angles.rotateX - baseRotationRef.current.rotateX,
+                yaw: angles.rotateY - baseRotationRef.current.rotateY,
+                roll: angles.rotateZ - baseRotationRef.current.rotateZ,
               };
+              setHeadPose(headPoseDiff);
 
-              const filteredRotation = applyKalmanFilter(rawRotation);
-              setRotation(filteredRotation);
+              // 実験条件に応じて画面回転を設定
+              let finalRotation: Rotation;
+              if (condition === 'rotate') {
+                // Rotate条件: 画面が回転する（既存ロジック）
+                const rawRotation: Rotation = {
+                  rotateX: headPoseDiff.pitch * 2,
+                  rotateY: headPoseDiff.yaw * 2,
+                  rotateZ: headPoseDiff.roll * 2,
+                };
+                finalRotation = applyKalmanFilter(rawRotation);
+                setRotation(finalRotation);
+              } else {
+                // Default条件: 画面は回転しない
+                finalRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
+                setRotation(finalRotation);
+              }
+
+              // 画面回転の値を記録
+              setScreenRotation({
+                pitch: finalRotation.rotateX,
+                yaw: finalRotation.rotateY,
+                roll: finalRotation.rotateZ,
+              });
 
               requestAnimationFrame(() => {
                 renderTimeRef.current = performance.now();
@@ -127,5 +159,12 @@ export const useFaceTracking = ({
     resetFilters();
   };
 
-  return { rotation, isStarted, handleStart, handleStop };
+  return {
+    rotation,
+    headPose,
+    screenRotation,
+    isStarted,
+    handleStart,
+    handleStop
+  };
 };

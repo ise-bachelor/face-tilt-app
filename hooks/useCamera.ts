@@ -22,7 +22,14 @@ export const useCamera = () => {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          try {
+            await videoRef.current.play();
+          } catch (playError: any) {
+            // AbortError は通常無視して問題ない（新しい load によって中断された場合）
+            if (playError.name !== 'AbortError') {
+              throw playError;
+            }
+          }
         }
       } catch (error) {
         console.error('カメラのアクセスに失敗しました:', error);

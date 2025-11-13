@@ -48,9 +48,16 @@ const TypingTaskPage = () => {
 
   // カメラストリームをビデオ要素に設定
   useEffect(() => {
-    if (stream && videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
+    const videoElement = videoRef.current;
+    if (stream && videoElement) {
+      videoElement.srcObject = stream;
+      // play() のエラーを適切にハンドリング
+      videoElement.play().catch((error) => {
+        // AbortError は通常無視して問題ない（新しい load によって中断された場合）
+        if (error.name !== 'AbortError') {
+          console.error('ビデオの再生に失敗しました:', error);
+        }
+      });
     }
   }, [stream]);
 

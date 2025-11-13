@@ -181,8 +181,10 @@ export default function Home() {
   };
 
   // 3D変換を適用したコンテナのスタイル
+  // translateZ(-1000px)は画面が手前に倒れた際にクリックできないコンポーネントが生じるのを防ぐ役割
   const containerStyle = {
     transform: `
+      translateZ(-1000px)
       perspective(1000px)
       rotateX(${rotation.rotateX}deg)
       rotateY(${rotation.rotateY}deg)

@@ -24,8 +24,7 @@ export const useFaceDetector = (isBrowser: boolean) => {
 
         const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
         const detectorConfig: any = {
-          runtime: 'mediapipe',
-          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+          runtime: 'tfjs',
           refineLandmarks: true,
         };
 

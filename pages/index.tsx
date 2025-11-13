@@ -4,6 +4,46 @@ import { useEffect, useRef, useState } from 'react';
 type FaceLandmarksDetector = any;
 type Keypoint = any;
 
+// カルマンフィルタクラス
+class KalmanFilter {
+  private x: number; // 推定値
+  private P: number; // 推定誤差の共分散
+  private Q: number; // プロセスノイズの共分散
+  private R: number; // 観測ノイズの共分散
+
+  constructor(processNoise: number = 0.01, measurementNoise: number = 0.1, initialValue: number = 0) {
+    this.x = initialValue; // 初期推定値
+    this.P = 1; // 初期推定誤差
+    this.Q = processNoise; // プロセスノイズ（システムの不確実性）
+    this.R = measurementNoise; // 観測ノイズ（測定の不確実性）
+  }
+
+  // カルマンフィルタの更新
+  update(measurement: number): number {
+    // 予測ステップ
+    const x_pred = this.x; // 状態予測（前回の推定値をそのまま使用）
+    const P_pred = this.P + this.Q; // 誤差共分散の予測
+
+    // 更新ステップ
+    const K = P_pred / (P_pred + this.R); // カルマンゲインの計算
+    this.x = x_pred + K * (measurement - x_pred); // 状態推定値の更新
+    this.P = (1 - K) * P_pred; // 誤差共分散の更新
+
+    return this.x;
+  }
+
+  // フィルタをリセット
+  reset(value: number = 0) {
+    this.x = value;
+    this.P = 1;
+  }
+
+  // 現在の推定値を取得
+  getValue(): number {
+    return this.x;
+  }
+}
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,6 +57,13 @@ export default function Home() {
   const currentRotationRef = useRef({ rotateX: 0, rotateY: 0, rotateZ: 0 });
   const detectionStartTimeRef = useRef<number>(0);
   const renderTimeRef = useRef<number>(0);
+  
+  // 各軸のカルマンフィルタ
+  const kalmanFiltersRef = useRef({
+    rotateX: new KalmanFilter(0.01, 0.5),
+    rotateY: new KalmanFilter(0.01, 0.5),
+    rotateZ: new KalmanFilter(0.01, 0.5),
+  });
 
   // ブラウザ環境かどうかを確認
   useEffect(() => {
@@ -85,6 +132,17 @@ export default function Home() {
     loadModel();
   }, [isBrowser]);
 
+  // カルマンフィルタを適用した回転処理
+  const applyKalmanFilter = (newRotation: { rotateX: number; rotateY: number; rotateZ: number }) => {
+    const filteredRotation = {
+      rotateX: kalmanFiltersRef.current.rotateX.update(newRotation.rotateX),
+      rotateY: kalmanFiltersRef.current.rotateY.update(newRotation.rotateY),
+      rotateZ: kalmanFiltersRef.current.rotateZ.update(newRotation.rotateZ),
+    };
+    
+    return filteredRotation;
+  };
+
   // 顔の角度を計算する関数
   const calculateFaceAngles = (keypoints: any[]) => {
     // 主要な特徴点のインデックス
@@ -137,11 +195,15 @@ export default function Home() {
 
             // スタート後のみ画面を傾ける（基準からの差分の2倍）
             if (isStarted) {
-              setRotation({
+              const rawRotation = {
                 rotateX: (angles.rotateX - baseRotation.rotateX) * 2,
                 rotateY: (angles.rotateY - baseRotation.rotateY) * 2,
                 rotateZ: (angles.rotateZ - baseRotation.rotateZ) * 2,
-              });
+              };
+              
+              // カルマンフィルタを適用
+              const filteredRotation = applyKalmanFilter(rawRotation);
+              setRotation(filteredRotation);
               
               // レンダリング完了時刻を記録（次のフレームで）
               requestAnimationFrame(() => {
@@ -172,12 +234,22 @@ export default function Home() {
   const handleStart = () => {
     setBaseRotation(currentRotationRef.current);
     setIsStarted(true);
+    
+    // カルマンフィルタを初期化
+    kalmanFiltersRef.current.rotateX.reset(0);
+    kalmanFiltersRef.current.rotateY.reset(0);
+    kalmanFiltersRef.current.rotateZ.reset(0);
   };
 
   // ストップボタンのハンドラー
   const handleStop = () => {
     setIsStarted(false);
     setRotation({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+    
+    // カルマンフィルタをリセット
+    kalmanFiltersRef.current.rotateX.reset(0);
+    kalmanFiltersRef.current.rotateY.reset(0);
+    kalmanFiltersRef.current.rotateZ.reset(0);
   };
 
   // 3D変換を適用したコンテナのスタイル
@@ -191,7 +263,7 @@ export default function Home() {
       rotateZ(${rotation.rotateZ}deg)
     `,
     transformStyle: 'preserve-3d' as const,
-    transition: 'transform 0.1s ease-out',
+    transition: 'transform 0.05s linear',
   };
 
   return (

@@ -10,22 +10,24 @@ export const useFaceDetector = (isBrowser: boolean) => {
   useEffect(() => {
     if (!isBrowser) return;
 
+    let isMounted = true;
+
     const loadModel = async () => {
       try {
-        // ここは「読み込むだけ」で OK（副作用で backend が登録される）
-        await Promise.all([
-          import('@tensorflow/tfjs-core'),
-          import('@tensorflow/tfjs-backend-webgl'),
-        ]);
-
+        // @tensorflow/tfjs パッケージ全体を使用することで動的インポートの問題を回避
+        const tf = await import('@tensorflow/tfjs');
         const faceLandmarksDetection = await import(
           '@tensorflow-models/face-landmarks-detection'
         );
 
+        // TensorFlow.js のバックエンドが準備できるまで待機
+        await tf.ready();
+
+        if (!isMounted) return;
+
         const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
         const detectorConfig: any = {
-          runtime: 'mediapipe',
-          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+          runtime: 'tfjs',
           refineLandmarks: true,
         };
 
@@ -33,6 +35,9 @@ export const useFaceDetector = (isBrowser: boolean) => {
           model,
           detectorConfig
         );
+
+        if (!isMounted) return;
+
         setDetector(loadedDetector);
         setIsModelLoaded(true);
       } catch (error) {
@@ -41,6 +46,10 @@ export const useFaceDetector = (isBrowser: boolean) => {
     };
 
     loadModel();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isBrowser]);
 
   return { detector, isModelLoaded };

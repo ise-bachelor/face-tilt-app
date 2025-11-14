@@ -8,12 +8,31 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
-import { FittsLogEntry } from '../types';
+import { FittsTrialLog } from '../types';
 
-interface TargetConfig {
-  size: number;
-  distance: number;
+// 難易度レベルの定義
+interface DifficultyLevel {
+  id: 'low' | 'mid' | 'high';
+  label: string;
+  R: number; // Radius
+  W: number; // Target Width
 }
+
+const DIFFICULTY_LEVELS: DifficultyLevel[] = [
+  { id: 'low', label: '低難易度', R: 150, W: 80 },
+  { id: 'mid', label: '中難易度', R: 300, W: 40 },
+  { id: 'high', label: '高難易度', R: 450, W: 20 },
+];
+
+// ターゲット数（円周上）
+const NUM_TARGETS = 13;
+
+// 各レベルの試行数（13個 × 往復2回）
+const TRIALS_PER_LEVEL = 26;
+
+// CUD準拠の配色
+const ACTIVE_COLOR = '#FFF100'; // RGB(255,241,0) - アクティブターゲット
+const INACTIVE_COLOR = '#C8C8CB'; // RGB(200,200,203) - 非アクティブターゲット
 
 const FittsTaskPage = () => {
   const router = useRouter();
@@ -29,24 +48,16 @@ const FittsTaskPage = () => {
     condition: session?.condition,
   });
 
-  // タスク設定
-  const targetSizes = [16, 32, 64];
-  const targetDistances = [128, 256, 512];
-  const configs: TargetConfig[] = [];
-  targetSizes.forEach(size => {
-    targetDistances.forEach(distance => {
-      configs.push({ size, distance });
-    });
-  });
-
-  const [isPractice, setIsPractice] = useState(true);
-  const [currentConfigIndex, setCurrentConfigIndex] = useState(0);
-  const [clickCount, setClickCount] = useState(0);
-  const [currentTargetIndex, setCurrentTargetIndex] = useState(0);
-  const [trialStartTime, setTrialStartTime] = useState(0);
+  // タスク状態管理
   const [isTaskStarted, setIsTaskStarted] = useState(false);
-  const [clickLogs, setClickLogs] = useState<FittsLogEntry[]>([]);
+  const [isTaskCompleted, setIsTaskCompleted] = useState(false);
+  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [currentTrialInLevel, setCurrentTrialInLevel] = useState(0);
+  const [currentTargetIndex, setCurrentTargetIndex] = useState<number | null>(null);
+  const [trialStartTime, setTrialStartTime] = useState(0);
+  const [trialLogs, setTrialLogs] = useState<FittsTrialLog[]>([]);
 
+  // 録画とログ
   const { isRecording, cameraBlob, screenBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
@@ -55,8 +66,8 @@ const FittsTaskPage = () => {
     isRecording,
   });
 
-  const currentConfig = configs[currentConfigIndex];
-  const totalClicks = isPractice ? 10 : 39;
+  const currentLevel = DIFFICULTY_LEVELS[currentLevelIndex];
+  const totalTrials = currentLevelIndex * TRIALS_PER_LEVEL + currentTrialInLevel;
 
   // セッションがない場合はホームに戻る
   useEffect(() => {
@@ -70,9 +81,7 @@ const FittsTaskPage = () => {
     const videoElement = videoRef.current;
     if (stream && videoElement) {
       videoElement.srcObject = stream;
-      // play() のエラーを適切にハンドリング
       videoElement.play().catch((error) => {
-        // AbortError は通常無視して問題ない（新しい load によって中断された場合）
         if (error.name !== 'AbortError') {
           console.error('ビデオの再生に失敗しました:', error);
         }
@@ -80,95 +89,113 @@ const FittsTaskPage = () => {
     }
   }, [stream]);
 
+  // 初期ターゲットをランダムに選択
+  const initializeFirstTarget = () => {
+    const randomIndex = Math.floor(Math.random() * NUM_TARGETS);
+    setCurrentTargetIndex(randomIndex);
+    setTrialStartTime(Date.now());
+  };
+
+  // 対角交互の次のターゲットを計算
+  const getNextTargetIndex = (currentIndex: number): number => {
+    return (currentIndex + 6) % NUM_TARGETS;
+  };
+
+  // タスク開始
   const handleStartTask = async () => {
     try {
-      // 録画開始
       await startRecording();
-
-      // 顔追跡開始
       handleStart();
-
       setIsTaskStarted(true);
-      setTrialStartTime(Date.now());
+      initializeFirstTarget();
     } catch (error) {
       console.error('タスク開始エラー:', error);
       alert('録画の開始に失敗しました。画面共有を許可してください。');
     }
   };
 
-  const handleTargetClick = () => {
-    const clickTime = Date.now() - trialStartTime;
+  // ターゲットクリック処理
+  const handleTargetClick = (clickedIndex: number) => {
+    if (!session || currentTargetIndex === null) return;
 
-    // ログに記録
-    const logEntry: FittsLogEntry = {
-      timestamp: Date.now(),
-      trial_index: clickCount,
-      target_size: currentConfig.size,
-      target_distance: currentConfig.distance,
-      click_time: clickTime,
-      is_practice: isPractice,
+    const endTime = Date.now();
+    const startTime = trialStartTime;
+    const MT = endTime - startTime;
+
+    // エラー判定（正しいターゲットをクリックしたか）
+    const isError = clickedIndex !== currentTargetIndex;
+
+    // ログ記録
+    const log: FittsTrialLog = {
+      participantId: session.participant_id,
+      tiltCondition: session.condition === 'rotate' ? 'tilt' : 'baseline',
+      trialId: totalTrials,
+      levelId: currentLevel.id,
+      D: currentLevel.R * 2, // 直径 = 半径 × 2
+      W: currentLevel.W,
+      startTime,
+      endTime,
+      MT,
+      targetIndex: currentTargetIndex,
+      clickedIndex,
+      isError,
     };
-    setClickLogs(prev => [...prev, logEntry]);
 
-    // 次のターゲットへ
-    const newClickCount = clickCount + 1;
-    setClickCount(newClickCount);
-    setCurrentTargetIndex(1 - currentTargetIndex); // 0と1を交互に
-    setTrialStartTime(Date.now());
+    setTrialLogs(prev => [...prev, log]);
 
-    // 練習または本番の終了判定
-    if (newClickCount >= totalClicks) {
-      if (isPractice) {
-        // 練習終了 → 本番へ
-        setIsPractice(false);
-        setClickCount(0);
-        setCurrentTargetIndex(0);
-        alert('練習が終了しました。本番を開始します。');
-      } else {
-        // 本番終了 → 次の条件へ
-        const nextConfigIndex = currentConfigIndex + 1;
-        if (nextConfigIndex < configs.length) {
-          setCurrentConfigIndex(nextConfigIndex);
-          setClickCount(0);
-          setCurrentTargetIndex(0);
-          setIsPractice(true);
-          alert(`条件 ${nextConfigIndex + 1}/${configs.length} を開始します。`);
-        } else {
-          // 全て終了
+    // 正しいターゲットがクリックされた場合のみ次へ進む
+    if (!isError) {
+      const newTrialInLevel = currentTrialInLevel + 1;
+
+      // 現在のレベルが終了したか確認
+      if (newTrialInLevel >= TRIALS_PER_LEVEL) {
+        const nextLevelIndex = currentLevelIndex + 1;
+
+        // 全レベルが終了したか確認
+        if (nextLevelIndex >= DIFFICULTY_LEVELS.length) {
+          // 全タスク完了
           handleCompleteTask();
+          return;
+        } else {
+          // 次のレベルへ
+          setCurrentLevelIndex(nextLevelIndex);
+          setCurrentTrialInLevel(0);
+          initializeFirstTarget();
         }
+      } else {
+        // 同じレベルの次のトライアルへ
+        setCurrentTrialInLevel(newTrialInLevel);
+        const nextIndex = getNextTargetIndex(currentTargetIndex);
+        setCurrentTargetIndex(nextIndex);
+        setTrialStartTime(Date.now());
       }
     }
   };
 
+  // タスク完了処理
   const handleCompleteTask = () => {
-    // 録画停止
     stopRecording();
-
     setIsTaskStarted(false);
-
-    // データダウンロード
-    setTimeout(() => {
-      downloadData();
-    }, 1000);
+    setIsTaskCompleted(true);
   };
 
-  const downloadData = () => {
+  // データダウンロード
+  const handleDownloadData = () => {
     if (!session) return;
 
-    const baseFilename = `${session.participant_id}_${session.task_name}_${session.condition}`;
+    const baseFilename = `${session.participant_id}_fitts_${session.condition}`;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+
+    // Fitts トライアルログ（CSV）
+    const fittsCSV = exportFittsLogsAsCSV();
+    if (fittsCSV) {
+      downloadCSV(fittsCSV, `${baseFilename}_trials_${timestamp}.csv`);
+    }
 
     // 姿勢ログ（CSV）
     const postureCSV = exportLogsAsCSV();
     if (postureCSV) {
       downloadCSV(postureCSV, `${baseFilename}_posture_${timestamp}.csv`);
-    }
-
-    // クリックログ（CSV）
-    const clickCSV = exportClickLogsAsCSV();
-    if (clickCSV) {
-      downloadCSV(clickCSV, `${baseFilename}_clicks_${timestamp}.csv`);
     }
 
     // Webカメラ録画（WebM）
@@ -181,37 +208,89 @@ const FittsTaskPage = () => {
       downloadWebM(screenBlob, `${baseFilename}_screen_${timestamp}.webm`);
     }
 
-    // セッション終了してホームに戻る
     alert('データのダウンロードが完了しました。');
-    endSession();
-    router.push('/');
   };
 
-  const exportClickLogsAsCSV = (): string => {
-    if (clickLogs.length === 0) return '';
+  // Fitts ログを CSV に変換
+  const exportFittsLogsAsCSV = (): string => {
+    if (trialLogs.length === 0) return '';
 
-    const headers = ['timestamp', 'trial_index', 'target_size', 'target_distance', 'click_time', 'is_practice'];
-    const rows = clickLogs.map(log =>
-      [log.timestamp, log.trial_index, log.target_size, log.target_distance, log.click_time, log.is_practice].join(',')
+    const headers = [
+      'participantId',
+      'tiltCondition',
+      'trialId',
+      'levelId',
+      'D',
+      'W',
+      'startTime',
+      'endTime',
+      'MT',
+      'targetIndex',
+      'clickedIndex',
+      'isError',
+    ];
+
+    const rows = trialLogs.map(log =>
+      [
+        log.participantId,
+        log.tiltCondition,
+        log.trialId,
+        log.levelId,
+        log.D,
+        log.W,
+        log.startTime,
+        log.endTime,
+        log.MT,
+        log.targetIndex,
+        log.clickedIndex,
+        log.isError,
+      ].join(',')
     );
 
     return [headers.join(','), ...rows].join('\n');
   };
 
-  const getTargetPosition = (index: number) => {
-    const angle = index === 0 ? 0 : Math.PI;
-    const x = 400 + currentConfig.distance * Math.cos(angle);
-    const y = 300 + currentConfig.distance * Math.sin(angle);
+  // ターゲット座標を計算（円周上）
+  const getTargetPosition = (index: number, centerX: number, centerY: number) => {
+    const angle = (2 * Math.PI * index) / NUM_TARGETS;
+    const x = centerX + currentLevel.R * Math.cos(angle);
+    const y = centerY + currentLevel.R * Math.sin(angle);
     return { x, y };
   };
 
-  const target0Pos = getTargetPosition(0);
-  const target1Pos = getTargetPosition(1);
+  // ホームに戻る
+  const handleBackToHome = () => {
+    endSession();
+    router.push('/');
+  };
 
+  // コンテナスタイル（Tilt条件に応じて変換）
   const containerStyle = getContainerStyle(rotation);
 
   if (!session) {
     return <div>読み込み中...</div>;
+  }
+
+  // タスク完了画面
+  if (isTaskCompleted) {
+    return (
+      <div style={pageStyle}>
+        <div style={completionContainerStyle}>
+          <h1 style={titleStyle}>タスク完了</h1>
+          <p style={descriptionStyle}>
+            全 {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL} 試行が完了しました。
+          </p>
+          <div style={buttonContainerStyle}>
+            <button onClick={handleDownloadData} style={downloadButtonStyle}>
+              データをダウンロード
+            </button>
+            <button onClick={handleBackToHome} style={homeButtonStyle}>
+              ホームに戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -224,9 +303,13 @@ const FittsTaskPage = () => {
         <div style={contentContainerStyle}>
           {!isTaskStarted ? (
             <div style={startContainerStyle}>
-              <h1 style={titleStyle}>フィッツの法則タスク</h1>
+              <h1 style={titleStyle}>Fitts タスク（ISO 9241-411）</h1>
               <p style={descriptionStyle}>
-                円周上に並んだターゲットを交互にクリックしてください。
+                円周上に配置された13個のターゲットを対角交互にクリックしてください。
+              </p>
+              <p style={descriptionStyle}>
+                全{DIFFICULTY_LEVELS.length}レベル × {TRIALS_PER_LEVEL}試行 = 合計{' '}
+                {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}試行
               </p>
               <button
                 onClick={handleStartTask}
@@ -240,42 +323,40 @@ const FittsTaskPage = () => {
             <>
               {/* 情報表示 */}
               <div style={infoContainerStyle}>
-                <p>モード: {isPractice ? '練習' : '本番'}</p>
-                <p>クリック数: {clickCount} / {totalClicks}</p>
-                <p>ターゲットサイズ: {currentConfig.size}px</p>
-                <p>距離: {currentConfig.distance}px</p>
-                <p>条件: {currentConfigIndex + 1} / {configs.length}</p>
+                <p>レベル: {currentLevel.label}</p>
+                <p>
+                  進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
+                </p>
+                <p>
+                  全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
+                </p>
+                <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
               </div>
 
               {/* ターゲット表示エリア */}
               <div style={targetAreaStyle}>
-                {/* ターゲット0 */}
-                <div
-                  onClick={currentTargetIndex === 0 ? handleTargetClick : undefined}
-                  style={{
-                    ...targetStyle,
-                    left: target0Pos.x - currentConfig.size / 2,
-                    top: target0Pos.y - currentConfig.size / 2,
-                    width: currentConfig.size,
-                    height: currentConfig.size,
-                    backgroundColor: currentTargetIndex === 0 ? '#f44336' : '#ccc',
-                    cursor: currentTargetIndex === 0 ? 'pointer' : 'default',
-                  }}
-                />
+                {Array.from({ length: NUM_TARGETS }).map((_, index) => {
+                  const centerX = 400; // コンテナ幅の中心
+                  const centerY = 300; // コンテナ高さの中心
+                  const pos = getTargetPosition(index, centerX, centerY);
+                  const isActive = index === currentTargetIndex;
 
-                {/* ターゲット1 */}
-                <div
-                  onClick={currentTargetIndex === 1 ? handleTargetClick : undefined}
-                  style={{
-                    ...targetStyle,
-                    left: target1Pos.x - currentConfig.size / 2,
-                    top: target1Pos.y - currentConfig.size / 2,
-                    width: currentConfig.size,
-                    height: currentConfig.size,
-                    backgroundColor: currentTargetIndex === 1 ? '#f44336' : '#ccc',
-                    cursor: currentTargetIndex === 1 ? 'pointer' : 'default',
-                  }}
-                />
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => handleTargetClick(index)}
+                      style={{
+                        ...targetStyle,
+                        left: pos.x - currentLevel.W / 2,
+                        top: pos.y - currentLevel.W / 2,
+                        width: currentLevel.W,
+                        height: currentLevel.W,
+                        backgroundColor: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  );
+                })}
               </div>
             </>
           )}
@@ -301,6 +382,7 @@ const contentContainerStyle: React.CSSProperties = {
   backgroundColor: 'white',
   borderRadius: '12px',
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  overflow: 'hidden',
 };
 
 const startContainerStyle: React.CSSProperties = {
@@ -309,6 +391,15 @@ const startContainerStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   height: '100%',
+  padding: '40px',
+};
+
+const completionContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100vh',
   padding: '40px',
 };
 
@@ -322,11 +413,39 @@ const titleStyle: React.CSSProperties = {
 const descriptionStyle: React.CSSProperties = {
   fontSize: '18px',
   color: '#666',
-  marginBottom: '30px',
+  marginBottom: '20px',
   textAlign: 'center',
 };
 
 const startButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#1976d2',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};
+
+const buttonContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: '20px',
+  marginTop: '20px',
+};
+
+const downloadButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};
+
+const homeButtonStyle: React.CSSProperties = {
   padding: '16px 32px',
   fontSize: '18px',
   fontWeight: 'bold',
@@ -344,6 +463,9 @@ const infoContainerStyle: React.CSSProperties = {
   fontSize: '14px',
   color: '#333',
   lineHeight: '1.6',
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  padding: '10px',
+  borderRadius: '8px',
 };
 
 const targetAreaStyle: React.CSSProperties = {
@@ -355,7 +477,7 @@ const targetAreaStyle: React.CSSProperties = {
 const targetStyle: React.CSSProperties = {
   position: 'absolute',
   borderRadius: '50%',
-  transition: 'background-color 0.2s',
+  transition: 'background-color 0.1s',
 };
 
 export default FittsTaskPage;

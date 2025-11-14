@@ -3,10 +3,7 @@ import { SteeringTrialLog } from '../types';
 
 interface SteeringTaskProps {
   participantId: string;
-  tiltEnabled: boolean;
-  pitch?: number;
-  yaw?: number;
-  roll?: number;
+  tiltCondition: 'baseline' | 'tilt';
   onComplete: (logs: SteeringTrialLog[]) => void;
 }
 
@@ -35,10 +32,7 @@ const TRIALS_PER_CONDITION = 10;
 
 export const SteeringTask: React.FC<SteeringTaskProps> = ({
   participantId,
-  tiltEnabled,
-  pitch = 0,
-  yaw = 0,
-  roll = 0,
+  tiltCondition,
   onComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,14 +41,11 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
   const [trials, setTrials] = useState<SteeringTrialLog[]>([]);
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
-  const [currentConditionIndex, setCurrentConditionIndex] = useState(0);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [errorTime, setErrorTime] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const [lastErrorCheckTime, setLastErrorCheckTime] = useState(0);
-  const [isTaskStarted, setIsTaskStarted] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
 
   // ランダムな条件順序を生成（コンポーネントマウント時のみ）
   const [conditionOrder] = useState(() => {
@@ -89,7 +80,6 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
     // トンネルを描画（グレー）
     const topEdge = CENTER_Y - currentConfig.W / 2;
-    const bottomEdge = CENTER_Y + currentConfig.W / 2;
     ctx.fillStyle = '#84919E';
     ctx.fillRect(START_X_MIN, topEdge, A, currentConfig.W);
 
@@ -109,7 +99,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     ctx.fillText('GOAL', (GOAL_X_MIN + GOAL_X_MAX) / 2, CENTER_Y);
   }, [currentConfig]);
 
-  // 初期描画
+  // 初期描画とcurrentConfig変更時の再描画
   useEffect(() => {
     drawCanvas();
   }, [drawCanvas]);
@@ -200,8 +190,6 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isTaskStarted || isComplete) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -264,7 +252,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       // ログを記録
       const log: SteeringTrialLog = {
         participantId,
-        tiltCondition: tiltEnabled ? 'tilt' : 'baseline',
+        tiltCondition,
         trialId: currentTrialIndex,
         widthCondition: currentConfig.widthCondition,
         A,
@@ -277,7 +265,8 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
         success,
       };
 
-      setTrials(prev => [...prev, log]);
+      const newTrials = [...trials, log];
+      setTrials(newTrials);
       setIsDrawing(false);
 
       // 次のトライアルへ
@@ -289,7 +278,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
         }, 100);
       } else {
         // 全トライアル完了
-        setIsComplete(true);
+        onComplete(newTrials);
       }
     } else {
       // ゴールに到達せずに終了
@@ -299,218 +288,46 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     }
   };
 
-  const handleStartTask = () => {
-    setIsTaskStarted(true);
-    drawCanvas();
-  };
-
-  const handleDownloadCSV = () => {
-    if (trials.length === 0) return;
-
-    const headers = [
-      'participantId',
-      'tiltCondition',
-      'trialId',
-      'widthCondition',
-      'A',
-      'W',
-      'startTime',
-      'endTime',
-      'MT',
-      'errorTime',
-      'errorCount',
-      'success',
-    ];
-
-    const rows = trials.map(log =>
-      [
-        log.participantId,
-        log.tiltCondition,
-        log.trialId,
-        log.widthCondition,
-        log.A,
-        log.W,
-        log.startTime.toFixed(2),
-        log.endTime.toFixed(2),
-        log.MT.toFixed(2),
-        log.errorTime.toFixed(2),
-        log.errorCount,
-        log.success,
-      ].join(',')
-    );
-
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `steering_${participantId}_${tiltEnabled ? 'tilt' : 'baseline'}_${Date.now()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    onComplete(trials);
-  };
-
-  // Tiltスタイル
-  const containerStyle: React.CSSProperties = {
-    transform: tiltEnabled
-      ? `rotateX(${pitch}deg) rotateY(${yaw}deg) rotateZ(${roll}deg)`
-      : 'none',
-    transition: 'transform 0.1s linear',
-  };
-
   return (
-    <div style={pageStyle}>
-      <div style={containerStyle}>
-        <div style={contentStyle}>
-          {!isTaskStarted ? (
-            <div style={startContainerStyle}>
-              <h1 style={titleStyle}>Steering Law タスク</h1>
-              <p style={descriptionStyle}>
-                トンネル内をマウスドラッグでなぞり、スタートからゴールまで移動してください。
-                <br />
-                できるだけ速く、かつトンネルからはみ出さないように進んでください。
-              </p>
-              <div style={infoBoxStyle}>
-                <p>条件: {tiltEnabled ? 'Tilt有効' : 'Baseline'}</p>
-                <p>試行数: {totalTrials}回</p>
-              </div>
-              <button onClick={handleStartTask} style={startButtonStyle}>
-                タスク開始
-              </button>
-            </div>
-          ) : isComplete ? (
-            <div style={completeContainerStyle}>
-              <h2 style={completeTitleStyle}>タスク完了！</h2>
-              <p style={completeDescriptionStyle}>
-                全{totalTrials}試行が完了しました。
-                <br />
-                データをダウンロードしてください。
-              </p>
-              <button onClick={handleDownloadCSV} style={downloadButtonStyle}>
-                CSVダウンロード
-              </button>
-            </div>
-          ) : (
-            <>
-              <div style={taskInfoStyle}>
-                <p>試行: {currentTrialIndex + 1} / {totalTrials}</p>
-                <p>難易度: {currentConfig.widthCondition} (幅: {currentConfig.W}px)</p>
-                {isDrawing && (
-                  <>
-                    <p>エラー回数: {errorCount}</p>
-                    <p>エラー時間: {(errorTime / 1000).toFixed(2)}秒</p>
-                  </>
-                )}
-              </div>
-              <canvas
-                ref={canvasRef}
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-                style={canvasStyle}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-              />
-              <div style={instructionStyle}>
-                {isDrawing
-                  ? 'ゴールまでマウスボタンを押したまま進んでください'
-                  : 'STARTエリアをクリックして開始してください'}
-              </div>
-            </>
-          )}
-        </div>
+    <div style={containerWrapperStyle}>
+      {/* タスク情報表示 */}
+      <div style={taskInfoStyle}>
+        <p>試行: {currentTrialIndex + 1} / {totalTrials}</p>
+        <p>難易度: {currentConfig.widthCondition} (幅: {currentConfig.W}px)</p>
+        {isDrawing && (
+          <>
+            <p>エラー回数: {errorCount}</p>
+            <p>エラー時間: {(errorTime / 1000).toFixed(2)}秒</p>
+          </>
+        )}
+      </div>
+
+      {/* キャンバス */}
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        style={canvasStyle}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+      />
+
+      {/* 説明 */}
+      <div style={instructionStyle}>
+        {isDrawing
+          ? 'ゴールまでマウスボタンを押したまま進んでください'
+          : 'STARTエリアをクリックして開始してください'}
       </div>
     </div>
   );
 };
 
 // スタイル定義
-const pageStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  backgroundColor: '#F5F5F5',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '20px',
-};
-
-const contentStyle: React.CSSProperties = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-  overflow: 'hidden',
-};
-
-const startContainerStyle: React.CSSProperties = {
-  padding: '60px 40px',
-  textAlign: 'center',
-  maxWidth: '600px',
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '32px',
-  fontWeight: 'bold',
-  marginBottom: '20px',
-  color: '#333',
-};
-
-const descriptionStyle: React.CSSProperties = {
-  fontSize: '16px',
-  color: '#666',
-  marginBottom: '30px',
-  lineHeight: '1.6',
-};
-
-const infoBoxStyle: React.CSSProperties = {
-  backgroundColor: '#F0F0F0',
-  padding: '20px',
-  borderRadius: '8px',
-  marginBottom: '30px',
-  fontSize: '14px',
-  color: '#333',
-};
-
-const startButtonStyle: React.CSSProperties = {
-  padding: '16px 48px',
-  fontSize: '18px',
-  fontWeight: 'bold',
-  color: '#FFFFFF',
-  backgroundColor: '#1976D2',
-  border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
-};
-
-const completeContainerStyle: React.CSSProperties = {
-  padding: '60px 40px',
-  textAlign: 'center',
-  maxWidth: '600px',
-};
-
-const completeTitleStyle: React.CSSProperties = {
-  fontSize: '28px',
-  fontWeight: 'bold',
-  marginBottom: '20px',
-  color: '#4CAF50',
-};
-
-const completeDescriptionStyle: React.CSSProperties = {
-  fontSize: '16px',
-  color: '#666',
-  marginBottom: '30px',
-  lineHeight: '1.6',
-};
-
-const downloadButtonStyle: React.CSSProperties = {
-  padding: '16px 48px',
-  fontSize: '18px',
-  fontWeight: 'bold',
-  color: '#FFFFFF',
-  backgroundColor: '#4CAF50',
-  border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
+const containerWrapperStyle: React.CSSProperties = {
+  position: 'relative',
+  width: '100%',
+  height: '100%',
 };
 
 const taskInfoStyle: React.CSSProperties = {
@@ -529,7 +346,6 @@ const taskInfoStyle: React.CSSProperties = {
 const canvasStyle: React.CSSProperties = {
   display: 'block',
   cursor: 'crosshair',
-  border: '1px solid #E0E0E0',
 };
 
 const instructionStyle: React.CSSProperties = {
@@ -542,5 +358,5 @@ const instructionStyle: React.CSSProperties = {
   backgroundColor: 'rgba(255, 255, 255, 0.9)',
   padding: '10px 20px',
   borderRadius: '8px',
-  zIndex: 10',
+  zIndex: 10,
 };

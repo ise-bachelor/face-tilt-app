@@ -233,11 +233,9 @@ const contentContainerStyle: React.CSSProperties = {
   display: 'flex',
   gap: '20px',
   width: '100%',
-  maxWidth: '1200px',
+  height: '100%',
   backgroundColor: 'white',
   padding: '30px',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 };
 
 const audioContainerStyle: React.CSSProperties = {

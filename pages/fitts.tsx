@@ -331,8 +331,8 @@ const FittsTaskPage = () => {
               {/* ターゲット表示エリア */}
               <div style={targetAreaStyle}>
                 {Array.from({ length: NUM_TARGETS }).map((_, index) => {
-                  const centerX = 400; // コンテナ幅の中心
-                  const centerY = 300; // コンテナ高さの中心
+                  const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
+                  const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
                   const pos = getTargetPosition(index, centerX, centerY);
                   const isActive = index === currentTargetIndex;
 
@@ -372,11 +372,9 @@ const pageStyle: React.CSSProperties = {
 
 const contentContainerStyle: React.CSSProperties = {
   position: 'relative',
-  width: '800px',
-  height: '600px',
+  width: '100%',
+  height: '100%',
   backgroundColor: 'white',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
   overflow: 'hidden',
 };
 

@@ -48,6 +48,8 @@ const SteeringTaskPage = () => {
   const [deviationCount, setDeviationCount] = useState(0);
   const [isTaskStarted, setIsTaskStarted] = useState(false);
   const [trialIndex, setTrialIndex] = useState(0);
+  const [canvasWidth, setCanvasWidth] = useState(800);
+  const [canvasHeight, setCanvasHeight] = useState(600);
 
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
@@ -58,8 +60,8 @@ const SteeringTaskPage = () => {
   });
 
   const currentConfig = configs[currentConfigIndex];
-  const tunnelStartX = 100;
-  const tunnelStartY = 300;
+  const tunnelStartX = canvasWidth * 0.2;
+  const tunnelStartY = canvasHeight / 2;
   const tunnelEndX = tunnelStartX + currentConfig.length;
   const tunnelEndY = tunnelStartY;
 
@@ -85,12 +87,30 @@ const SteeringTaskPage = () => {
     }
   }, [stream]);
 
+  // 画面サイズに応じてキャンバスサイズを設定
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      setCanvasWidth(window.innerWidth);
+      setCanvasHeight(window.innerHeight);
+    };
+
+    // 初期サイズ設定
+    updateCanvasSize();
+
+    // リサイズイベントリスナー
+    window.addEventListener('resize', updateCanvasSize);
+
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+    };
+  }, []);
+
   // キャンバスを描画
   useEffect(() => {
     if (canvasRef.current) {
       drawTunnel();
     }
-  }, [currentConfig]);
+  }, [currentConfig, canvasWidth, canvasHeight]);
 
   const handleStartTask = async () => {
     try {
@@ -351,8 +371,8 @@ const SteeringTaskPage = () => {
               {/* キャンバス */}
               <canvas
                 ref={canvasRef}
-                width={800}
-                height={600}
+                width={canvasWidth}
+                height={canvasHeight}
                 style={canvasStyle}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
@@ -382,11 +402,9 @@ const pageStyle: React.CSSProperties = {
 
 const contentContainerStyle: React.CSSProperties = {
   position: 'relative',
-  width: '800px',
-  height: '600px',
+  width: '100%',
+  height: '100%',
   backgroundColor: 'white',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 };
 
 const startContainerStyle: React.CSSProperties = {

@@ -29,12 +29,9 @@ export const getContainerStyle = (rotation: Rotation) => ({
   `,
   transformStyle: 'preserve-3d' as const,
   transition: 'transform 0.05s linear',
-  width: '80%',
-  maxWidth: '800px',
+  width: '100vw',
+  height: '100vh',
   background: 'white',
-  borderRadius: '20px',
-  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-  padding: '60px',
   position: 'relative' as const,
 });
 

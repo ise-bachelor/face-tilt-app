@@ -183,8 +183,13 @@ const SteeringTaskPage = () => {
     );
   }
 
+  // タスク実行中は画面全体を回転
+  const currentPageStyle = isTaskStarted
+    ? { ...pageStyle, ...containerStyle }
+    : pageStyle;
+
   return (
-    <div style={pageStyle}>
+    <div style={currentPageStyle}>
       {/* 非表示のビデオ要素 */}
       <video ref={videoRef} style={{ display: 'none' }} width={640} height={480} />
 
@@ -209,15 +214,13 @@ const SteeringTaskPage = () => {
           </button>
         </div>
       ) : (
-        // タスク画面（回転する）
-        <div style={containerStyle}>
-          <div style={contentContainerStyle}>
-            <SteeringTask
-              participantId={session.participant_id}
-              tiltCondition={tiltCondition}
-              onComplete={handleComplete}
-            />
-          </div>
+        // タスク画面
+        <div style={contentContainerStyle}>
+          <SteeringTask
+            participantId={session.participant_id}
+            tiltCondition={tiltCondition}
+            onComplete={handleComplete}
+          />
         </div>
       )}
     </div>

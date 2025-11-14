@@ -136,18 +136,15 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     }
 
     const checkPosition = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseEvent = (window as any).lastMouseEvent;
-      if (!mouseEvent) {
+      // 最後のマウス座標を取得
+      const mousePos = lastMousePositionRef.current;
+      if (!mousePos) {
         animationFrameRef.current = requestAnimationFrame(checkPosition);
         return;
       }
 
-      const x = mouseEvent.clientX - rect.left;
-      const y = mouseEvent.clientY - rect.top;
+      const x = mousePos.offsetX;
+      const y = mousePos.offsetY;
       const now = performance.now();
       const inside = isInsideTunnel(x, y);
 
@@ -177,25 +174,21 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     };
   }, [isDrawing, currentConfig.W]);
 
-  // マウスイベントをグローバルに保存
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      (window as any).lastMouseEvent = e;
-    };
+  // マウス座標をグローバルに保存（キャンバスローカル座標）
+  const lastMousePositionRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // キャンバスのローカル座標を保存（回転に影響されない）
+    lastMousePositionRef.current = {
+      offsetX: e.nativeEvent.offsetX,
+      offsetY: e.nativeEvent.offsetY,
     };
-  }, []);
+  };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // キャンバスのローカル座標を使用（回転に影響されない）
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
 
     // スタートエリア内でのみ開始
     if (isInStartArea(x, y)) {
@@ -205,11 +198,15 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       setErrorCount(0);
       setLastErrorCheckTime(performance.now());
       lastPositionRef.current = { x, y, wasInside: true };
+      lastMousePositionRef.current = { offsetX: x, offsetY: y };
       drawCanvas();
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // マウス座標を更新
+    handleCanvasMouseMove(e);
+
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
@@ -218,9 +215,9 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // キャンバスのローカル座標を使用（回転に影響されない）
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
 
     const inside = isInsideTunnel(x, y);
 
@@ -234,12 +231,9 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // キャンバスのローカル座標を使用（回転に影響されない）
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
 
     const endTime = performance.now();
     const MT = endTime - startTime;

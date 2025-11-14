@@ -43,7 +43,7 @@ export interface PostureLogEntry {
   audio_is_playing?: boolean;    // 議事録タスクのみ
 }
 
-// フィッツタスク: クリックログ
+// フィッツタスク: クリックログ（旧型 - 後方互換性のため残す）
 export interface FittsLogEntry {
   timestamp: number;
   trial_index: number;
@@ -51,6 +51,22 @@ export interface FittsLogEntry {
   target_distance: number;
   click_time: number;
   is_practice: boolean;
+}
+
+// フィッツタスク: トライアルログ（ISO 9241-411準拠）
+export interface FittsTrialLog {
+  participantId: string;
+  tiltCondition: 'baseline' | 'tilt';
+  trialId: number;
+  levelId: 'low' | 'mid' | 'high';
+  D: number;  // Distance (radius)
+  W: number;  // Width (target size)
+  startTime: number;
+  endTime: number;
+  MT: number;  // Movement Time
+  targetIndex: number;
+  clickedIndex: number;
+  isError: boolean;
 }
 
 // ステアリングタスク: 軌跡ログ

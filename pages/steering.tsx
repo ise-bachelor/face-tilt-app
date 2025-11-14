@@ -49,7 +49,7 @@ const SteeringTaskPage = () => {
   const [isTaskStarted, setIsTaskStarted] = useState(false);
   const [trialIndex, setTrialIndex] = useState(0);
 
-  const { isRecording, cameraBlob, screenBlob, startRecording, stopRecording } = useRecording(stream);
+  const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
     headPose,
@@ -103,7 +103,7 @@ const SteeringTaskPage = () => {
       setIsTaskStarted(true);
     } catch (error) {
       console.error('タスク開始エラー:', error);
-      alert('録画の開始に失敗しました。画面共有を許可してください。');
+      alert('録画の開始に失敗しました。');
     }
   };
 
@@ -290,11 +290,6 @@ const SteeringTaskPage = () => {
     // Webカメラ録画（WebM）
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
-    }
-
-    // 画面録画（WebM）
-    if (screenBlob) {
-      downloadWebM(screenBlob, `${baseFilename}_screen_${timestamp}.webm`);
     }
 
     // セッション終了してホームに戻る

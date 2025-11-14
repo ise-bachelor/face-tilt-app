@@ -81,6 +81,22 @@ export interface SteeringLogEntry {
   is_practice: boolean;
 }
 
+// ステアリングタスク: トライアルログ（Steering Law準拠）
+export interface SteeringTrialLog {
+  participantId: string;
+  tiltCondition: 'baseline' | 'tilt';
+  trialId: number;
+  widthCondition: 'easy' | 'medium' | 'hard';
+  A: number;  // Tunnel length (800px)
+  W: number;  // Tunnel width (200/100/50px)
+  startTime: number;
+  endTime: number;
+  MT: number;  // Movement Time
+  errorTime: number;  // Time spent outside tunnel
+  errorCount: number;  // Number of times exiting tunnel
+  success: boolean;
+}
+
 // 実験セッション情報
 export interface ExperimentSession {
   participant_id: string;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useCamera } from '../contexts/CameraContext';
 import { useExperiment } from '../contexts/ExperimentContext';
@@ -8,19 +8,16 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
-import { SteeringLogEntry } from '../types';
+import { SteeringTrialLog } from '../types';
+import { SteeringTask } from '../components/SteeringTask';
 
-interface TunnelConfig {
-  width: number;
-  length: number;
-}
+const TOTAL_TRIALS = 30; // 3条件 × 10試行
 
 const SteeringTaskPage = () => {
   const router = useRouter();
   const { stream } = useCamera();
   const { session, endSession } = useExperiment();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector(true);
   const { rotation, headPose, screenRotation, handleStart } = useFaceTracking({
@@ -30,26 +27,9 @@ const SteeringTaskPage = () => {
     condition: session?.condition,
   });
 
-  // タスク設定
-  const tunnelWidths = [15, 31, 63];
-  const tunnelLengths = [100, 200, 400];
-  const configs: TunnelConfig[] = [];
-  tunnelWidths.forEach(width => {
-    tunnelLengths.forEach(length => {
-      configs.push({ width, length });
-    });
-  });
-
-  const [isPractice, setIsPractice] = useState(true);
-  const [currentConfigIndex, setCurrentConfigIndex] = useState(0);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [trialStartTime, setTrialStartTime] = useState(0);
-  const [trajectoryLogs, setTrajectoryLogs] = useState<SteeringLogEntry[]>([]);
-  const [deviationCount, setDeviationCount] = useState(0);
   const [isTaskStarted, setIsTaskStarted] = useState(false);
-  const [trialIndex, setTrialIndex] = useState(0);
-  const [canvasWidth, setCanvasWidth] = useState(800);
-  const [canvasHeight, setCanvasHeight] = useState(600);
+  const [isTaskCompleted, setIsTaskCompleted] = useState(false);
+  const [steeringLogs, setSteeringLogs] = useState<SteeringTrialLog[]>([]);
 
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
@@ -58,12 +38,6 @@ const SteeringTaskPage = () => {
     screenRotation,
     isRecording,
   });
-
-  const currentConfig = configs[currentConfigIndex];
-  const tunnelStartX = canvasWidth * 0.2;
-  const tunnelStartY = canvasHeight / 2;
-  const tunnelEndX = tunnelStartX + currentConfig.length;
-  const tunnelEndY = tunnelStartY;
 
   // セッションがない場合はホームに戻る
   useEffect(() => {
@@ -77,9 +51,7 @@ const SteeringTaskPage = () => {
     const videoElement = videoRef.current;
     if (stream && videoElement) {
       videoElement.srcObject = stream;
-      // play() のエラーを適切にハンドリング
       videoElement.play().catch((error) => {
-        // AbortError は通常無視して問題ない（新しい load によって中断された場合）
         if (error.name !== 'AbortError') {
           console.error('ビデオの再生に失敗しました:', error);
         }
@@ -87,39 +59,11 @@ const SteeringTaskPage = () => {
     }
   }, [stream]);
 
-  // 画面サイズに応じてキャンバスサイズを設定
-  useEffect(() => {
-    const updateCanvasSize = () => {
-      setCanvasWidth(window.innerWidth);
-      setCanvasHeight(window.innerHeight);
-    };
-
-    // 初期サイズ設定
-    updateCanvasSize();
-
-    // リサイズイベントリスナー
-    window.addEventListener('resize', updateCanvasSize);
-
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-    };
-  }, []);
-
-  // キャンバスを描画
-  useEffect(() => {
-    if (canvasRef.current) {
-      drawTunnel();
-    }
-  }, [currentConfig, canvasWidth, canvasHeight]);
-
+  // タスク開始
   const handleStartTask = async () => {
     try {
-      // 録画開始
       await startRecording();
-
-      // 顔追跡開始
       handleStart();
-
       setIsTaskStarted(true);
     } catch (error) {
       console.error('タスク開始エラー:', error);
@@ -127,184 +71,31 @@ const SteeringTaskPage = () => {
     }
   };
 
-  const drawTunnel = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // キャンバスをクリア
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // トンネルを描画
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(
-      tunnelStartX,
-      tunnelStartY - currentConfig.width / 2,
-      currentConfig.length,
-      currentConfig.width
-    );
-
-    // スタート地点
-    ctx.fillStyle = '#4caf50';
-    ctx.beginPath();
-    ctx.arc(tunnelStartX, tunnelStartY, 10, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // ゴール地点
-    ctx.fillStyle = '#f44336';
-    ctx.beginPath();
-    ctx.arc(tunnelEndX, tunnelEndY, 10, 0, 2 * Math.PI);
-    ctx.fill();
-  };
-
-  const isInsideTunnel = (x: number, y: number): boolean => {
-    const topEdge = tunnelStartY - currentConfig.width / 2;
-    const bottomEdge = tunnelStartY + currentConfig.width / 2;
-
-    return (
-      x >= tunnelStartX &&
-      x <= tunnelEndX &&
-      y >= topEdge &&
-      y <= bottomEdge
-    );
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isTaskStarted) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // スタート地点近くでのみ開始
-    const distToStart = Math.sqrt((x - tunnelStartX) ** 2 + (y - tunnelStartY) ** 2);
-    if (distToStart < 20) {
-      setIsDrawing(true);
-      setTrialStartTime(Date.now());
-      setDeviationCount(0);
-      setTrajectoryLogs([]);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const inside = isInsideTunnel(x, y);
-
-    // 軌跡ログに記録
-    const logEntry: SteeringLogEntry = {
-      timestamp: Date.now(),
-      trial_index: trialIndex,
-      tunnel_width: currentConfig.width,
-      tunnel_length: currentConfig.length,
-      x,
-      y,
-      is_inside_tunnel: inside,
-      is_practice: isPractice,
-    };
-    setTrajectoryLogs(prev => [...prev, logEntry]);
-
-    // 逸脱カウント
-    if (!inside) {
-      setDeviationCount(prev => prev + 1);
-    }
-
-    // 軌跡を描画
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = inside ? '#2196f3' : '#f44336';
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  };
-
-  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // ゴール地点近くで終了
-    const distToEnd = Math.sqrt((x - tunnelEndX) ** 2 + (y - tunnelEndY) ** 2);
-    if (distToEnd < 20) {
-      const completionTime = Date.now() - trialStartTime;
-      alert(`完了時間: ${(completionTime / 1000).toFixed(2)}秒\n逸脱回数: ${deviationCount}`);
-
-      // 次のトライアルへ
-      setIsDrawing(false);
-      const newTrialIndex = trialIndex + 1;
-      setTrialIndex(newTrialIndex);
-
-      if (isPractice) {
-        // 練習終了 → 本番へ
-        setIsPractice(false);
-        alert('練習が終了しました。本番を開始します。');
-        drawTunnel();
-      } else {
-        // 本番終了 → 次の条件へ
-        const nextConfigIndex = currentConfigIndex + 1;
-        if (nextConfigIndex < configs.length) {
-          setCurrentConfigIndex(nextConfigIndex);
-          setIsPractice(true);
-          alert(`条件 ${nextConfigIndex + 1}/${configs.length} を開始します。`);
-        } else {
-          // 全て終了
-          handleCompleteTask();
-        }
-      }
-    } else {
-      // ゴール到達せず
-      setIsDrawing(false);
-      alert('ゴールに到達できませんでした。もう一度試してください。');
-      drawTunnel();
-    }
-  };
-
-  const handleCompleteTask = () => {
-    // 録画停止
+  // タスク完了
+  const handleComplete = (logs: SteeringTrialLog[]) => {
+    setSteeringLogs(logs);
     stopRecording();
-
     setIsTaskStarted(false);
-
-    // データダウンロード
-    setTimeout(() => {
-      downloadData();
-    }, 1000);
+    setIsTaskCompleted(true);
   };
 
-  const downloadData = () => {
+  // データダウンロード
+  const handleDownloadData = () => {
     if (!session) return;
 
-    const baseFilename = `${session.participant_id}_${session.task_name}_${session.condition}`;
+    const baseFilename = `${session.participant_id}_steering_${session.condition}`;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+
+    // Steering トライアルログ（CSV）
+    const steeringCSV = exportSteeringLogsAsCSV();
+    if (steeringCSV) {
+      downloadCSV(steeringCSV, `${baseFilename}_trials_${timestamp}.csv`);
+    }
 
     // 姿勢ログ（CSV）
     const postureCSV = exportLogsAsCSV();
     if (postureCSV) {
       downloadCSV(postureCSV, `${baseFilename}_posture_${timestamp}.csv`);
-    }
-
-    // 軌跡ログ（CSV）
-    const trajectoryCSV = exportTrajectoryLogsAsCSV();
-    if (trajectoryCSV) {
-      downloadCSV(trajectoryCSV, `${baseFilename}_trajectory_${timestamp}.csv`);
     }
 
     // Webカメラ録画（WebM）
@@ -314,79 +105,124 @@ const SteeringTaskPage = () => {
 
     // セッション終了してホームに戻る
     alert('データのダウンロードが完了しました。');
-    endSession();
-    router.push('/');
   };
 
-  const exportTrajectoryLogsAsCSV = (): string => {
-    if (trajectoryLogs.length === 0) return '';
+  // Steering ログを CSV に変換
+  const exportSteeringLogsAsCSV = (): string => {
+    if (steeringLogs.length === 0) return '';
 
-    const headers = ['timestamp', 'trial_index', 'tunnel_width', 'tunnel_length', 'x', 'y', 'is_inside_tunnel', 'is_practice'];
-    const rows = trajectoryLogs.map(log =>
-      [log.timestamp, log.trial_index, log.tunnel_width, log.tunnel_length, log.x.toFixed(2), log.y.toFixed(2), log.is_inside_tunnel, log.is_practice].join(',')
+    const headers = [
+      'participantId',
+      'tiltCondition',
+      'trialId',
+      'widthCondition',
+      'A',
+      'W',
+      'startTime',
+      'endTime',
+      'MT',
+      'errorTime',
+      'errorCount',
+      'success',
+    ];
+
+    const rows = steeringLogs.map(log =>
+      [
+        log.participantId,
+        log.tiltCondition,
+        log.trialId,
+        log.widthCondition,
+        log.A,
+        log.W,
+        log.startTime.toFixed(2),
+        log.endTime.toFixed(2),
+        log.MT.toFixed(2),
+        log.errorTime.toFixed(2),
+        log.errorCount,
+        log.success,
+      ].join(',')
     );
 
     return [headers.join(','), ...rows].join('\n');
   };
 
+  // ホームに戻る
+  const handleBackToHome = () => {
+    endSession();
+    router.push('/');
+  };
+
+  // コンテナスタイル（Tilt条件に応じて変換）
   const containerStyle = getContainerStyle(rotation);
 
   if (!session) {
     return <div>読み込み中...</div>;
   }
 
+  const tiltCondition = session.condition === 'rotate' ? 'tilt' : 'baseline';
+
+  // タスク完了画面（回転しない）
+  if (isTaskCompleted) {
+    return (
+      <div style={pageStyle}>
+        <div style={completionContainerStyle}>
+          <h1 style={titleStyle}>タスク完了</h1>
+          <p style={descriptionStyle}>
+            全 {TOTAL_TRIALS} 試行が完了しました。
+          </p>
+          <div style={buttonContainerStyle}>
+            <button onClick={handleDownloadData} style={downloadButtonStyle}>
+              データをダウンロード
+            </button>
+            <button onClick={handleBackToHome} style={homeButtonStyle}>
+              ホームに戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // タスク実行中は画面全体を回転
+  const currentPageStyle = isTaskStarted
+    ? { ...pageStyle, ...containerStyle }
+    : pageStyle;
+
   return (
-    <div style={pageStyle}>
+    <div style={currentPageStyle}>
       {/* 非表示のビデオ要素 */}
       <video ref={videoRef} style={{ display: 'none' }} width={640} height={480} />
 
-      {/* 3D変換されるコンテナ */}
-      <div style={containerStyle}>
-        <div style={contentContainerStyle}>
-          {!isTaskStarted ? (
-            <div style={startContainerStyle}>
-              <h1 style={titleStyle}>ステアリングの法則タスク</h1>
-              <p style={descriptionStyle}>
-                トンネル内をマウスでなぞってゴールまで進んでください。
-              </p>
-              <button
-                onClick={handleStartTask}
-                disabled={!isModelLoaded}
-                style={startButtonStyle}
-              >
-                {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* 情報表示 */}
-              <div style={infoContainerStyle}>
-                <p>モード: {isPractice ? '練習' : '本番'}</p>
-                <p>トンネル幅: {currentConfig.width}px</p>
-                <p>トンネル長さ: {currentConfig.length}px</p>
-                <p>条件: {currentConfigIndex + 1} / {configs.length}</p>
-                {isDrawing && <p>逸脱回数: {deviationCount}</p>}
-              </div>
-
-              {/* キャンバス */}
-              <canvas
-                ref={canvasRef}
-                width={canvasWidth}
-                height={canvasHeight}
-                style={canvasStyle}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-              />
-
-              {/* 説明 */}
-              <div style={instructionStyle}>
-                緑の円からスタートして、赤い円までマウスでなぞってください。
-              </div>
-            </>
-          )}
+      {!isTaskStarted ? (
+        // 説明画面（回転しない）
+        <div style={startContainerStyle}>
+          <h1 style={titleStyle}>Steering Law タスク</h1>
+          <p style={descriptionStyle}>
+            トンネル内をマウスドラッグでなぞり、スタートからゴールまで移動してください。
+            <br />
+            できるだけ速く、かつトンネルからはみ出さないように進んでください。
+          </p>
+          <p style={descriptionStyle}>
+            全{TOTAL_TRIALS}試行（3難易度 × 10試行）
+          </p>
+          <button
+            onClick={handleStartTask}
+            disabled={!isModelLoaded}
+            style={startButtonStyle}
+          >
+            {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
+          </button>
         </div>
-      </div>
+      ) : (
+        // タスク画面
+        <div style={contentContainerStyle}>
+          <SteeringTask
+            participantId={session.participant_id}
+            tiltCondition={tiltCondition}
+            onComplete={handleComplete}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -400,20 +236,37 @@ const pageStyle: React.CSSProperties = {
   justifyContent: 'center',
 };
 
-const contentContainerStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'white',
-};
-
 const startContainerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  height: '100%',
   padding: '40px',
+  backgroundColor: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  maxWidth: '600px',
+};
+
+const contentContainerStyle: React.CSSProperties = {
+  position: 'relative',
+  width: '1200px',
+  height: '400px',
+  backgroundColor: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  overflow: 'hidden',
+};
+
+const completionContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '40px',
+  backgroundColor: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 };
 
 const titleStyle: React.CSSProperties = {
@@ -426,8 +279,9 @@ const titleStyle: React.CSSProperties = {
 const descriptionStyle: React.CSSProperties = {
   fontSize: '18px',
   color: '#666',
-  marginBottom: '30px',
+  marginBottom: '20px',
   textAlign: 'center',
+  lineHeight: '1.6',
 };
 
 const startButtonStyle: React.CSSProperties = {
@@ -441,31 +295,32 @@ const startButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const infoContainerStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: '20px',
-  left: '20px',
-  fontSize: '14px',
-  color: '#333',
-  lineHeight: '1.6',
-  zIndex: 10,
+const buttonContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: '20px',
+  marginTop: '20px',
 };
 
-const canvasStyle: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  cursor: 'crosshair',
+const downloadButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
 };
 
-const instructionStyle: React.CSSProperties = {
-  position: 'absolute',
-  bottom: '20px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  fontSize: '14px',
-  color: '#666',
-  textAlign: 'center',
-  zIndex: 10,
+const homeButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#1976d2',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
 };
 
 export default SteeringTaskPage;

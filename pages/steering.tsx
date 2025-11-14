@@ -10,6 +10,7 @@ import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { SteeringTrialLog } from '../types';
 import { SteeringTask } from '../components/SteeringTask';
+import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 
 const TOTAL_TRIALS = 30; // 3条件 × 10試行
 
@@ -195,24 +196,19 @@ const SteeringTaskPage = () => {
 
       {!isTaskStarted ? (
         // 説明画面（回転しない）
-        <div style={startContainerStyle}>
-          <h1 style={titleStyle}>Steering Law タスク</h1>
-          <p style={descriptionStyle}>
-            トンネル内をマウスドラッグでなぞり、スタートからゴールまで移動してください。
-            <br />
-            できるだけ速く、かつトンネルからはみ出さないように進んでください。
-          </p>
-          <p style={descriptionStyle}>
-            全{TOTAL_TRIALS}試行（3難易度 × 10試行）
-          </p>
-          <button
-            onClick={handleStartTask}
-            disabled={!isModelLoaded}
-            style={startButtonStyle}
-          >
-            {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
-          </button>
-        </div>
+        <TaskInstructionScreen
+          title="Steering Law タスク"
+          description={
+            <>
+              トンネル内をマウスドラッグでなぞり、スタートからゴールまで移動してください。
+              <br />
+              できるだけ速く、かつトンネルからはみ出さないように進んでください。
+            </>
+          }
+          additionalInfo={`全${TOTAL_TRIALS}試行（3難易度 × 10試行）`}
+          onStart={handleStartTask}
+          isModelLoaded={isModelLoaded}
+        />
       ) : (
         // タスク画面
         <div style={contentContainerStyle}>

@@ -8,6 +8,7 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadText, downloadWebM, generateFilename } from '../utils/downloadUtils';
+import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 
 const TypingTaskPage = () => {
   const router = useRouter();
@@ -158,63 +159,73 @@ const TypingTaskPage = () => {
     return <div>読み込み中...</div>;
   }
 
+  // タスク実行中は画面全体を回転
+  const currentPageStyle = isTaskStarted
+    ? { ...pageStyle, ...containerStyle }
+    : pageStyle;
+
   return (
-    <div style={pageStyle}>
+    <div style={currentPageStyle}>
       {/* 非表示のビデオ要素 */}
       <video ref={videoRef} style={{ display: 'none' }} width={640} height={480} />
 
-      {/* 3D変換されるコンテナ */}
-      <div style={containerStyle}>
-        <div style={contentContainerStyle}>
-          {/* 左側: 音声プレーヤー */}
-          <div style={audioContainerStyle}>
-            <h2 style={sectionTitleStyle}>音声再生</h2>
-            <audio
-              ref={audioRef}
-              controls
-              style={audioPlayerStyle}
-              src="/sample-audio.mp3"
-            >
-              お使いのブラウザは audio タグをサポートしていません。
-            </audio>
-            {isTaskStarted && (
+      {!isTaskStarted ? (
+        // 説明画面（回転しない）
+        <TaskInstructionScreen
+          title="議事録作成タスク"
+          description={
+            <>
+              音声を聞きながら議事録を作成してください。
+              <br />
+              音声は自由に巻き戻し・一時停止できます。
+              <br />
+              音声が終了したら完了ボタンを押してください。
+            </>
+          }
+          onStart={handleStartTask}
+          isModelLoaded={isModelLoaded}
+        />
+      ) : (
+        // タスク画面（回転する）
+        <>
+          <div style={contentContainerStyle}>
+            {/* 左側: 音声プレーヤー */}
+            <div style={audioContainerStyle}>
+              <h2 style={sectionTitleStyle}>音声再生</h2>
+              <audio
+                ref={audioRef}
+                controls
+                style={audioPlayerStyle}
+                src="/sample-audio.mp3"
+              >
+                お使いのブラウザは audio タグをサポートしていません。
+              </audio>
               <div style={audioInfoStyle}>
                 <p>再生時間: {audioCurrentTime.toFixed(1)}秒</p>
                 <p>状態: {audioIsPlaying ? '再生中' : '一時停止'}</p>
               </div>
-            )}
+            </div>
+
+            {/* 中央: テキストエリア */}
+            <div style={textAreaContainerStyle}>
+              <h2 style={sectionTitleStyle}>議事録</h2>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="会議の内容を自由に記述してください..."
+                style={textAreaStyle}
+              />
+            </div>
           </div>
 
-          {/* 中央: テキストエリア */}
-          <div style={textAreaContainerStyle}>
-            <h2 style={sectionTitleStyle}>議事録</h2>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="会議の内容を自由に記述してください..."
-              style={textAreaStyle}
-              disabled={!isTaskStarted}
-            />
-          </div>
-        </div>
-
-        {/* コントロールボタン */}
-        <div style={buttonContainerStyle}>
-          {!isTaskStarted ? (
-            <button
-              onClick={handleStartTask}
-              disabled={!isModelLoaded}
-              style={startButtonStyle}
-            >
-              {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
-            </button>
-          ) : (
+          {/* コントロールボタン */}
+          <div style={buttonContainerStyle}>
             <button onClick={handleCompleteTask} style={completeButtonStyle}>
               タスク完了・データダウンロード
             </button>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

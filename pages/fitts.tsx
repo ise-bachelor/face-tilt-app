@@ -366,9 +366,11 @@ const pageStyle: React.CSSProperties = {
 };
 
 const contentContainerStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  height: '100%',
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
   backgroundColor: 'white',
   overflow: 'hidden',
 };

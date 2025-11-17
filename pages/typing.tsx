@@ -241,19 +241,25 @@ const pageStyle: React.CSSProperties = {
 };
 
 const contentContainerStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
   display: 'flex',
   gap: '20px',
-  width: '100%',
-  height: '100%',
   backgroundColor: 'white',
   padding: '30px',
+  paddingBottom: '100px',
+  boxSizing: 'border-box',
 };
 
 const audioContainerStyle: React.CSSProperties = {
-  flex: '0 0 300px',
+  flex: '0 0 350px',
   display: 'flex',
   flexDirection: 'column',
   gap: '15px',
+  height: 'fit-content',
 };
 
 const textAreaContainerStyle: React.CSSProperties = {
@@ -261,6 +267,7 @@ const textAreaContainerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '15px',
+  minHeight: 0,
 };
 
 const sectionTitleStyle: React.CSSProperties = {
@@ -282,20 +289,24 @@ const audioInfoStyle: React.CSSProperties = {
 
 const textAreaStyle: React.CSSProperties = {
   width: '100%',
-  minHeight: '400px',
+  flex: 1,
   padding: '15px',
   fontSize: '16px',
   lineHeight: '1.6',
   border: '2px solid #ddd',
   borderRadius: '8px',
-  resize: 'vertical',
+  resize: 'none',
   fontFamily: 'inherit',
 };
 
 const buttonContainerStyle: React.CSSProperties = {
-  marginTop: '20px',
+  position: 'fixed',
+  bottom: '30px',
+  left: '50%',
+  transform: 'translateX(-50%)',
   display: 'flex',
   justifyContent: 'center',
+  zIndex: 10,
 };
 
 const startButtonStyle: React.CSSProperties = {

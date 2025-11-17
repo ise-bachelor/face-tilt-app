@@ -245,12 +245,12 @@ const startContainerStyle: React.CSSProperties = {
 };
 
 const contentContainerStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '1200px',
-  height: '400px',
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
   backgroundColor: 'white',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
   overflow: 'hidden',
 };
 

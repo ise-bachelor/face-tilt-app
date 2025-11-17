@@ -165,25 +165,27 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
           {minutesData.sections.map((section, sectionIndex) => (
             <div key={sectionIndex} style={sectionStyle}>
               <h3 style={sectionTitleStyle}>{section.title}</h3>
-              {section.sentences.map((sentence, sentenceIndex) => {
-                const isCurrentHighlight =
-                  isHighlighted &&
-                  currentMissing?.sectionIndex === sectionIndex &&
-                  currentMissing?.sentenceIndex === sentenceIndex;
+              <p style={paragraphStyle}>
+                {section.sentences.map((sentence, sentenceIndex) => {
+                  const isCurrentHighlight =
+                    isHighlighted &&
+                    currentMissing?.sectionIndex === sectionIndex &&
+                    currentMissing?.sentenceIndex === sentenceIndex;
 
-                return (
-                  <p
-                    key={sentence.id}
-                    style={{
-                      ...sentenceStyle,
-                      backgroundColor: isCurrentHighlight ? '#ffeb3b' : 'transparent',
-                      fontWeight: isCurrentHighlight ? 'bold' : 'normal',
-                    }}
-                  >
-                    {sentence.text}
-                  </p>
-                );
-              })}
+                  return (
+                    <span
+                      key={sentence.id}
+                      style={{
+                        backgroundColor: isCurrentHighlight ? '#ffeb3b' : 'transparent',
+                        fontWeight: isCurrentHighlight ? 'bold' : 'normal',
+                        transition: 'background-color 0.3s',
+                      }}
+                    >
+                      {sentence.text}
+                    </span>
+                  );
+                })}
+              </p>
             </div>
           ))}
         </div>
@@ -200,85 +202,93 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
           {minutesData.sections.map((section, sectionIndex) => (
             <div key={sectionIndex} style={sectionStyle}>
               <h3 style={sectionTitleStyle}>{section.title}</h3>
-              {section.sentences.map((sentence, sentenceIndex) => {
-                // この文が欠落しているか確認
-                const missingEntry = minutesData.missingSentences.find(
-                  m => m.sectionIndex === sectionIndex && m.sentenceIndex === sentenceIndex
-                );
+              <p style={paragraphStyle}>
+                {section.sentences.map((sentence, sentenceIndex) => {
+                  // この文が欠落しているか確認
+                  const missingEntry = minutesData.missingSentences.find(
+                    m => m.sectionIndex === sectionIndex && m.sentenceIndex === sentenceIndex
+                  );
 
-                if (missingEntry) {
-                  // 欠落文 - 入力欄を表示
-                  const isEditing = editingId === missingEntry.id;
-                  const inputValue = missingInputs[missingEntry.id] || '';
-                  const isCompleted = inputLogs.some(log => log.sentenceId === missingEntry.id);
+                  if (missingEntry) {
+                    // 欠落文 - 入力欄を表示（インラインで）
+                    const isEditing = editingId === missingEntry.id;
+                    const inputValue = missingInputs[missingEntry.id] || '';
+                    const isCompleted = inputLogs.some(log => log.sentenceId === missingEntry.id);
 
-                  return (
-                    <div
-                      key={sentence.id}
-                      style={missingAreaStyle}
-                      onClick={() => handleMissingClick(missingEntry.id)}
-                    >
-                      {isEditing && !isCompleted ? (
+                    if (isEditing && !isCompleted) {
+                      return (
                         <input
+                          key={sentence.id}
                           type="text"
                           value={inputValue}
                           onChange={(e) => handleInputChange(missingEntry.id, e.target.value)}
-                          style={inputStyle}
-                          placeholder="ここに文を入力してください..."
+                          style={inlineInputStyle}
+                          placeholder=""
                           autoFocus
                         />
-                      ) : isCompleted ? (
-                        <p style={{ ...sentenceStyle, backgroundColor: '#c8e6c9' }}>
+                      );
+                    } else if (isCompleted) {
+                      return (
+                        <span
+                          key={sentence.id}
+                          style={{
+                            backgroundColor: '#c8e6c9',
+                            padding: '2px',
+                            borderRadius: '2px',
+                          }}
+                        >
                           {inputValue}
-                        </p>
-                      ) : (
-                        <p style={{ ...sentenceStyle, color: '#999', fontStyle: 'italic' }}>
-                          （クリックして入力）
-                        </p>
-                      )}
-                    </div>
+                        </span>
+                      );
+                    } else {
+                      // 未入力・未クリック状態：空白スペースとして表示（目立たない）
+                      return (
+                        <span
+                          key={sentence.id}
+                          onClick={() => handleMissingClick(missingEntry.id)}
+                          style={missingSpanStyle}
+                        >
+                          {'\u00A0'.repeat(10)}
+                        </span>
+                      );
+                    }
+                  }
+
+                  // 通常の文 - 誤字があるか確認
+                  const typo = minutesData.typos.find(
+                    t => t.sectionIndex === sectionIndex && t.sentenceIndex === sentenceIndex
                   );
-                }
 
-                // 通常の文 - 誤字があるか確認
-                let displayText = sentence.text;
-                let typoElement = null;
+                  if (typo) {
+                    const isFixed = fixedTypos.has(typo.id);
+                    const textToShow = isFixed ? typo.correct : typo.typo;
 
-                const typo = minutesData.typos.find(
-                  t => t.sectionIndex === sectionIndex && t.sentenceIndex === sentenceIndex
-                );
+                    // 誤字を含む文を分割して表示
+                    const parts = sentence.text.split(typo.correct);
 
-                if (typo) {
-                  const isFixed = fixedTypos.has(typo.id);
-                  const textToShow = isFixed ? typo.correct : typo.typo;
-
-                  // 誤字を含む文を分割して表示
-                  const parts = sentence.text.split(typo.correct);
-
-                  return (
-                    <p key={sentence.id} style={sentenceStyle}>
-                      {parts[0]}
-                      <span
-                        onClick={() => handleTypoClick(typo.id)}
-                        style={{
-                          ...typoSpanStyle,
-                          backgroundColor: isFixed ? '#c8e6c9' : 'transparent',
-                          cursor: isFixed ? 'default' : 'pointer',
-                        }}
-                      >
-                        {textToShow}
+                    return (
+                      <span key={sentence.id}>
+                        {parts[0]}
+                        <span
+                          onClick={() => handleTypoClick(typo.id)}
+                          style={{
+                            backgroundColor: isFixed ? '#c8e6c9' : 'transparent',
+                            cursor: isFixed ? 'default' : 'pointer',
+                            padding: '2px',
+                            borderRadius: '2px',
+                            transition: 'background-color 0.3s',
+                          }}
+                        >
+                          {textToShow}
+                        </span>
+                        {parts[1]}
                       </span>
-                      {parts[1]}
-                    </p>
-                  );
-                }
+                    );
+                  }
 
-                return (
-                  <p key={sentence.id} style={sentenceStyle}>
-                    {displayText}
-                  </p>
-                );
-              })}
+                  return <span key={sentence.id}>{sentence.text}</span>;
+                })}
+              </p>
             </div>
           ))}
         </div>
@@ -374,7 +384,8 @@ const panelTitleStyle: React.CSSProperties = {
 const scrollableContentStyle: React.CSSProperties = {
   flex: 1,
   overflowY: 'auto',
-  padding: '20px',
+  padding: '40px 60px',
+  backgroundColor: '#f9f9f9',
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -390,38 +401,32 @@ const sectionTitleStyle: React.CSSProperties = {
   paddingBottom: '5px',
 };
 
-const sentenceStyle: React.CSSProperties = {
+// Google Docs風の段落スタイル
+const paragraphStyle: React.CSSProperties = {
   fontSize: '16px',
   lineHeight: '1.8',
-  color: '#333',
-  marginBottom: '10px',
-  padding: '8px',
-  borderRadius: '4px',
-  transition: 'background-color 0.3s',
+  color: '#202124',
+  margin: '0 0 16px 0',
+  fontFamily: "'Arial', 'Helvetica', sans-serif",
+  textAlign: 'justify',
 };
 
-const missingAreaStyle: React.CSSProperties = {
-  minHeight: '40px',
-  marginBottom: '10px',
-  padding: '8px',
-  border: '2px dashed #999',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  backgroundColor: '#fafafa',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px',
+// 欠落箇所のインライン入力スタイル
+const inlineInputStyle: React.CSSProperties = {
   fontSize: '16px',
-  border: '2px solid #1976d2',
-  borderRadius: '4px',
+  lineHeight: '1.8',
+  border: 'none',
+  borderBottom: '1px solid #1976d2',
   outline: 'none',
-  fontFamily: 'inherit',
+  fontFamily: "'Arial', 'Helvetica', sans-serif",
+  backgroundColor: 'transparent',
+  padding: '0 2px',
+  minWidth: '200px',
 };
 
-const typoSpanStyle: React.CSSProperties = {
-  padding: '2px 4px',
-  borderRadius: '3px',
-  transition: 'background-color 0.3s',
+// 欠落箇所のスパンスタイル（目立たない）
+const missingSpanStyle: React.CSSProperties = {
+  cursor: 'text',
+  display: 'inline',
+  borderBottom: '1px solid transparent',
 };

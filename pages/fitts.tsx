@@ -9,6 +9,7 @@ import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { FittsTrialLog } from '../types';
+import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 
 // 難易度レベルの定義
 interface DifficultyLevel {
@@ -288,75 +289,69 @@ const FittsTaskPage = () => {
     );
   }
 
+  // タスク実行中は画面全体を回転
+  const currentPageStyle = isTaskStarted
+    ? { ...pageStyle, ...containerStyle }
+    : pageStyle;
+
   return (
-    <div style={pageStyle}>
+    <div style={currentPageStyle}>
       {/* 非表示のビデオ要素 */}
       <video ref={videoRef} style={{ display: 'none' }} width={640} height={480} />
 
-      {/* 3D変換されるコンテナ */}
-      <div style={containerStyle}>
+      {!isTaskStarted ? (
+        // 説明画面（回転しない）
+        <TaskInstructionScreen
+          title="Fitts タスク（ISO 9241-411）"
+          description="円周上に配置された13個のターゲットを対角交互にクリックしてください。"
+          additionalInfo={`全${DIFFICULTY_LEVELS.length}レベル × ${TRIALS_PER_LEVEL}試行 = 合計 ${
+            DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL
+          }試行`}
+          onStart={handleStartTask}
+          isModelLoaded={isModelLoaded}
+        />
+      ) : (
+        // タスク画面（回転する）
         <div style={contentContainerStyle}>
-          {!isTaskStarted ? (
-            <div style={startContainerStyle}>
-              <h1 style={titleStyle}>Fitts タスク（ISO 9241-411）</h1>
-              <p style={descriptionStyle}>
-                円周上に配置された13個のターゲットを対角交互にクリックしてください。
-              </p>
-              <p style={descriptionStyle}>
-                全{DIFFICULTY_LEVELS.length}レベル × {TRIALS_PER_LEVEL}試行 = 合計{' '}
-                {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}試行
-              </p>
-              <button
-                onClick={handleStartTask}
-                disabled={!isModelLoaded}
-                style={startButtonStyle}
-              >
-                {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* 情報表示 */}
-              <div style={infoContainerStyle}>
-                <p>レベル: {currentLevel.label}</p>
-                <p>
-                  進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
-                </p>
-                <p>
-                  全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
-                </p>
-                <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
-              </div>
+          {/* 情報表示 */}
+          <div style={infoContainerStyle}>
+            <p>レベル: {currentLevel.label}</p>
+            <p>
+              進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
+            </p>
+            <p>
+              全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
+            </p>
+            <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
+          </div>
 
-              {/* ターゲット表示エリア */}
-              <div style={targetAreaStyle}>
-                {Array.from({ length: NUM_TARGETS }).map((_, index) => {
-                  const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
-                  const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
-                  const pos = getTargetPosition(index, centerX, centerY);
-                  const isActive = index === currentTargetIndex;
+          {/* ターゲット表示エリア */}
+          <div style={targetAreaStyle}>
+            {Array.from({ length: NUM_TARGETS }).map((_, index) => {
+              const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
+              const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
+              const pos = getTargetPosition(index, centerX, centerY);
+              const isActive = index === currentTargetIndex;
 
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => handleTargetClick(index)}
-                      style={{
-                        ...targetStyle,
-                        left: pos.x - currentLevel.W / 2,
-                        top: pos.y - currentLevel.W / 2,
-                        width: currentLevel.W,
-                        height: currentLevel.W,
-                        backgroundColor: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
-                        cursor: 'pointer',
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </>
-          )}
+              return (
+                <div
+                  key={index}
+                  onClick={() => handleTargetClick(index)}
+                  style={{
+                    ...targetStyle,
+                    left: pos.x - currentLevel.W / 2,
+                    top: pos.y - currentLevel.W / 2,
+                    width: currentLevel.W,
+                    height: currentLevel.W,
+                    backgroundColor: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
+                    cursor: 'pointer',
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -371,9 +366,11 @@ const pageStyle: React.CSSProperties = {
 };
 
 const contentContainerStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  height: '100%',
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
   backgroundColor: 'white',
   overflow: 'hidden',
 };

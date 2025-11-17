@@ -8,6 +8,7 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadText, downloadWebM, generateFilename } from '../utils/downloadUtils';
+import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 
 const TypingTaskPage = () => {
   const router = useRouter();
@@ -158,63 +159,73 @@ const TypingTaskPage = () => {
     return <div>読み込み中...</div>;
   }
 
+  // タスク実行中は画面全体を回転
+  const currentPageStyle = isTaskStarted
+    ? { ...pageStyle, ...containerStyle }
+    : pageStyle;
+
   return (
-    <div style={pageStyle}>
+    <div style={currentPageStyle}>
       {/* 非表示のビデオ要素 */}
       <video ref={videoRef} style={{ display: 'none' }} width={640} height={480} />
 
-      {/* 3D変換されるコンテナ */}
-      <div style={containerStyle}>
-        <div style={contentContainerStyle}>
-          {/* 左側: 音声プレーヤー */}
-          <div style={audioContainerStyle}>
-            <h2 style={sectionTitleStyle}>音声再生</h2>
-            <audio
-              ref={audioRef}
-              controls
-              style={audioPlayerStyle}
-              src="/sample-audio.mp3"
-            >
-              お使いのブラウザは audio タグをサポートしていません。
-            </audio>
-            {isTaskStarted && (
+      {!isTaskStarted ? (
+        // 説明画面（回転しない）
+        <TaskInstructionScreen
+          title="議事録作成タスク"
+          description={
+            <>
+              音声を聞きながら議事録を作成してください。
+              <br />
+              音声は自由に巻き戻し・一時停止できます。
+              <br />
+              音声が終了したら完了ボタンを押してください。
+            </>
+          }
+          onStart={handleStartTask}
+          isModelLoaded={isModelLoaded}
+        />
+      ) : (
+        // タスク画面（回転する）
+        <>
+          <div style={contentContainerStyle}>
+            {/* 左側: 音声プレーヤー */}
+            <div style={audioContainerStyle}>
+              <h2 style={sectionTitleStyle}>音声再生</h2>
+              <audio
+                ref={audioRef}
+                controls
+                style={audioPlayerStyle}
+                src="/sample-audio.mp3"
+              >
+                お使いのブラウザは audio タグをサポートしていません。
+              </audio>
               <div style={audioInfoStyle}>
                 <p>再生時間: {audioCurrentTime.toFixed(1)}秒</p>
                 <p>状態: {audioIsPlaying ? '再生中' : '一時停止'}</p>
               </div>
-            )}
+            </div>
+
+            {/* 中央: テキストエリア */}
+            <div style={textAreaContainerStyle}>
+              <h2 style={sectionTitleStyle}>議事録</h2>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="会議の内容を自由に記述してください..."
+                style={textAreaStyle}
+              />
+            </div>
           </div>
 
-          {/* 中央: テキストエリア */}
-          <div style={textAreaContainerStyle}>
-            <h2 style={sectionTitleStyle}>議事録</h2>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="会議の内容を自由に記述してください..."
-              style={textAreaStyle}
-              disabled={!isTaskStarted}
-            />
-          </div>
-        </div>
-
-        {/* コントロールボタン */}
-        <div style={buttonContainerStyle}>
-          {!isTaskStarted ? (
-            <button
-              onClick={handleStartTask}
-              disabled={!isModelLoaded}
-              style={startButtonStyle}
-            >
-              {isModelLoaded ? 'タスク開始' : '顔認識モデル読み込み中...'}
-            </button>
-          ) : (
+          {/* コントロールボタン */}
+          <div style={buttonContainerStyle}>
             <button onClick={handleCompleteTask} style={completeButtonStyle}>
               タスク完了・データダウンロード
             </button>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -230,19 +241,25 @@ const pageStyle: React.CSSProperties = {
 };
 
 const contentContainerStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
   display: 'flex',
   gap: '20px',
-  width: '100%',
-  height: '100%',
   backgroundColor: 'white',
   padding: '30px',
+  paddingBottom: '100px',
+  boxSizing: 'border-box',
 };
 
 const audioContainerStyle: React.CSSProperties = {
-  flex: '0 0 300px',
+  flex: '0 0 350px',
   display: 'flex',
   flexDirection: 'column',
   gap: '15px',
+  height: 'fit-content',
 };
 
 const textAreaContainerStyle: React.CSSProperties = {
@@ -250,6 +267,7 @@ const textAreaContainerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '15px',
+  minHeight: 0,
 };
 
 const sectionTitleStyle: React.CSSProperties = {
@@ -271,20 +289,24 @@ const audioInfoStyle: React.CSSProperties = {
 
 const textAreaStyle: React.CSSProperties = {
   width: '100%',
-  minHeight: '400px',
+  flex: 1,
   padding: '15px',
   fontSize: '16px',
   lineHeight: '1.6',
   border: '2px solid #ddd',
   borderRadius: '8px',
-  resize: 'vertical',
+  resize: 'none',
   fontFamily: 'inherit',
 };
 
 const buttonContainerStyle: React.CSSProperties = {
-  marginTop: '20px',
+  position: 'fixed',
+  bottom: '30px',
+  left: '50%',
+  transform: 'translateX(-50%)',
   display: 'flex',
   justifyContent: 'center',
+  zIndex: 10,
 };
 
 const startButtonStyle: React.CSSProperties = {

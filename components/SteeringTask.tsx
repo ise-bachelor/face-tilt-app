@@ -20,14 +20,6 @@ const TUNNEL_CONFIGS: TunnelConfig[] = [
   { widthCondition: 'hard', W: 50 },
 ];
 
-const CANVAS_WIDTH = 1200;
-const CANVAS_HEIGHT = 400;
-const CENTER_Y = 200;
-const A = 800;  // Tunnel length
-const START_X_MIN = 150;
-const START_X_MAX = 250;
-const GOAL_X_MIN = 950;
-const GOAL_X_MAX = 1050;
 const TRIALS_PER_CONDITION = 10;
 
 export const SteeringTask: React.FC<SteeringTaskProps> = ({
@@ -47,6 +39,12 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
   const [errorCount, setErrorCount] = useState(0);
   const [lastErrorCheckTime, setLastErrorCheckTime] = useState(0);
 
+  // 画面サイズを管理
+  const [canvasSize, setCanvasSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
   // ランダムな条件順序を生成（コンポーネントマウント時のみ）
   const [conditionOrder] = useState(() => {
     const order: number[] = [];
@@ -65,6 +63,29 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
   const currentConfig = TUNNEL_CONFIGS[conditionOrder[currentTrialIndex]];
   const totalTrials = conditionOrder.length;
+
+  // 画面サイズに基づいたトンネルの配置を計算
+  const CANVAS_WIDTH = canvasSize.width;
+  const CANVAS_HEIGHT = canvasSize.height;
+  const CENTER_Y = CANVAS_HEIGHT / 2;
+  const A = 800;  // トンネル長さ: 800px（固定）
+  const START_X_MIN = CANVAS_WIDTH / 2 - 500;
+  const START_X_MAX = START_X_MIN + 100;
+  const GOAL_X_MIN = START_X_MIN + A;
+  const GOAL_X_MAX = GOAL_X_MIN + 100;
+
+  // 画面サイズの変更を監視
+  useEffect(() => {
+    const handleResize = () => {
+      setCanvasSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // キャンバスを描画
   const drawCanvas = useCallback(() => {
@@ -97,33 +118,33 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     ctx.fillRect(GOAL_X_MIN, topEdge, 100, currentConfig.W);
     ctx.fillStyle = '#FFFFFF';
     ctx.fillText('GOAL', (GOAL_X_MIN + GOAL_X_MAX) / 2, CENTER_Y);
-  }, [currentConfig]);
+  }, [currentConfig, CANVAS_WIDTH, CANVAS_HEIGHT, CENTER_Y, A, START_X_MIN, START_X_MAX, GOAL_X_MIN, GOAL_X_MAX]);
 
-  // 初期描画とcurrentConfig変更時の再描画
+  // 初期描画とcurrentTrialIndex変更時の再描画
   useEffect(() => {
     drawCanvas();
-  }, [drawCanvas]);
+  }, [drawCanvas, currentTrialIndex, canvasSize]);
 
   // 通路内判定
-  const isInsideTunnel = (x: number, y: number): boolean => {
+  const isInsideTunnel = useCallback((x: number, y: number): boolean => {
     const topEdge = CENTER_Y - currentConfig.W / 2;
     const bottomEdge = CENTER_Y + currentConfig.W / 2;
     return x >= START_X_MIN && x <= GOAL_X_MAX && y >= topEdge && y <= bottomEdge;
-  };
+  }, [CENTER_Y, currentConfig.W, START_X_MIN, GOAL_X_MAX]);
 
   // スタートエリア判定
-  const isInStartArea = (x: number, y: number): boolean => {
+  const isInStartArea = useCallback((x: number, y: number): boolean => {
     const topEdge = CENTER_Y - currentConfig.W / 2;
     const bottomEdge = CENTER_Y + currentConfig.W / 2;
     return x >= START_X_MIN && x <= START_X_MAX && y >= topEdge && y <= bottomEdge;
-  };
+  }, [CENTER_Y, currentConfig.W, START_X_MIN, START_X_MAX]);
 
   // ゴールエリア判定
-  const isInGoalArea = (x: number, y: number): boolean => {
+  const isInGoalArea = useCallback((x: number, y: number): boolean => {
     const topEdge = CENTER_Y - currentConfig.W / 2;
     const bottomEdge = CENTER_Y + currentConfig.W / 2;
     return x >= GOAL_X_MIN && x <= GOAL_X_MAX && y >= topEdge && y <= bottomEdge;
-  };
+  }, [CENTER_Y, currentConfig.W, GOAL_X_MIN, GOAL_X_MAX]);
 
   // エラー計測のためのアニメーションループ
   useEffect(() => {
@@ -172,7 +193,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isDrawing, currentConfig.W]);
+  }, [isDrawing, isInsideTunnel]);
 
   // マウス座標をグローバルに保存（キャンバスローカル座標）
   const lastMousePositionRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
@@ -267,9 +288,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       const nextTrialIndex = currentTrialIndex + 1;
       if (nextTrialIndex < totalTrials) {
         setCurrentTrialIndex(nextTrialIndex);
-        setTimeout(() => {
-          drawCanvas();
-        }, 100);
+        // currentConfigが変更されると、useEffectでdrawCanvas()が自動的に呼び出される
       } else {
         // 全トライアル完了
         onComplete(newTrials);
@@ -299,8 +318,8 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       {/* キャンバス */}
       <canvas
         ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
+        width={canvasSize.width}
+        height={canvasSize.height}
         style={canvasStyle}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -319,9 +338,12 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
 // スタイル定義
 const containerWrapperStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  height: '100%',
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
+  overflow: 'hidden',
 };
 
 const taskInfoStyle: React.CSSProperties = {
@@ -340,6 +362,9 @@ const taskInfoStyle: React.CSSProperties = {
 const canvasStyle: React.CSSProperties = {
   display: 'block',
   cursor: 'crosshair',
+  position: 'absolute',
+  top: 0,
+  left: 0,
 };
 
 const instructionStyle: React.CSSProperties = {

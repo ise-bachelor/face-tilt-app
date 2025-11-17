@@ -202,7 +202,35 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
           {minutesData.sections.map((section, sectionIndex) => (
             <div key={sectionIndex} style={sectionStyle}>
               <h3 style={sectionTitleStyle}>{section.title}</h3>
-              <p style={paragraphStyle}>
+              <p
+                style={paragraphStyle}
+                contentEditable={true}
+                suppressContentEditableWarning={true}
+                onBeforeInput={(e) => {
+                  // 欠落箇所以外の編集をブロック
+                  const selection = window.getSelection();
+                  if (!selection || selection.rangeCount === 0) {
+                    e.preventDefault();
+                    return;
+                  }
+
+                  // 現在のカーソル位置が編集可能な欠落箇所かチェック
+                  const range = selection.getRangeAt(0);
+                  const container = range.startContainer;
+
+                  // 欠落箇所のinput要素内かチェック
+                  let element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container as HTMLElement;
+                  while (element && element.tagName !== 'P') {
+                    if (element.tagName === 'INPUT') {
+                      return; // input内なので編集を許可
+                    }
+                    element = element.parentElement as HTMLElement;
+                  }
+
+                  // 欠落箇所以外なので編集をブロック
+                  e.preventDefault();
+                }}
+              >
                 {section.sentences.map((sentence, sentenceIndex) => {
                   // この文が欠落しているか確認
                   const missingEntry = minutesData.missingSentences.find(
@@ -241,14 +269,13 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                         </span>
                       );
                     } else {
-                      // 未入力・未クリック状態：空白スペースとして表示（目立たない）
+                      // 未入力・未クリック状態：空白なし
                       return (
                         <span
                           key={sentence.id}
                           onClick={() => handleMissingClick(missingEntry.id)}
                           style={missingSpanStyle}
                         >
-                          {'\u00A0'.repeat(10)}
                         </span>
                       );
                     }

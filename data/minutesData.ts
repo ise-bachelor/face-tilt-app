@@ -414,9 +414,9 @@ export const minutesData: MinutesData = {
     {
       id: "typo-3",
       sectionIndex: 7,
-      sentenceIndex: 2,
-      typo: "資涼",
-      correct: "資料"
+      sentenceIndex: 1,
+      typo: "具対的",
+      correct: "具体的"
     },
     {
       id: "typo-4",

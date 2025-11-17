@@ -11,7 +11,7 @@ export type Rotation = {
 export type ExperimentCondition = 'rotate' | 'default';
 
 // タスク種類
-export type TaskType = 'typing' | 'fitts' | 'steering' | 'minutes';
+export type TaskType = 'fitts' | 'steering' | 'minutes';
 
 // 頭部姿勢（基準との差分）
 export interface HeadPose {

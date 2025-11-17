@@ -8,13 +8,6 @@ import { ConsentForm } from '../components/ConsentForm';
 import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
 const taskDescriptions: Record<TaskType, string> = {
-  typing: `
-【議事録作成タスク】
-会議音声を聞きながら議事録を作成してください。
-- 音声は自由に巻き戻し・一時停止できます
-- テキストエリアに自由に記述してください
-- 音声が終了したら完了ボタンを押してください
-  `.trim(),
   fitts: `
 【フィッツの法則タスク】
 円周上に並んだターゲットを交互にクリックしてください。
@@ -144,15 +137,6 @@ const Home: NextPage = () => {
           <div style={formGroupStyle}>
             <label style={labelStyle}>タスク選択</label>
             <div style={radioGroupStyle}>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="typing"
-                  checked={taskName === 'typing'}
-                  onChange={(e) => setTaskName(e.target.value as TaskType)}
-                />
-                <span style={radioTextStyle}>議事録作成タスク</span>
-              </label>
               <label style={radioLabelStyle}>
                 <input
                   type="radio"

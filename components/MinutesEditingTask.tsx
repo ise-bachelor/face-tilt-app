@@ -61,10 +61,19 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
       const userInput = missingInputs[currentMissing.id] || '';
       const correctText = currentMissing.text;
 
+      // デバッグ用ログ
+      console.log('入力チェック:', {
+        userInput: `"${userInput}"`,
+        correctText: `"${correctText}"`,
+        userInputTrim: `"${userInput.trim()}"`,
+        correctTextTrim: `"${correctText.trim()}"`,
+        isEqual: userInput.trim() === correctText.trim()
+      });
+
       if (userInput.trim() !== correctText.trim()) {
         // 入力が不正確
         setCurrentFixCount(prev => prev + 1);
-        alert('入力内容が正しくありません。もう一度確認してください。');
+        alert(`入力内容が正しくありません。もう一度確認してください。\n\n期待: "${correctText}"\n入力: "${userInput}"`);
         return;
       }
 
@@ -206,6 +215,25 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                 style={paragraphStyle}
                 contentEditable={true}
                 suppressContentEditableWarning={true}
+                onKeyDown={(e) => {
+                  // input要素内かチェック
+                  const target = e.target as HTMLElement;
+                  if (target.tagName === 'INPUT') {
+                    // input内では通常の入力を許可
+                    return;
+                  }
+
+                  // input外では、バックスペースとDeleteキーを無効化
+                  if (e.key === 'Backspace' || e.key === 'Delete') {
+                    e.preventDefault();
+                    return;
+                  }
+
+                  // input外でのすべての文字入力をブロック
+                  if (e.key.length === 1) {
+                    e.preventDefault();
+                  }
+                }}
                 onBeforeInput={(e) => {
                   // 欠落箇所以外の編集をブロック
                   const selection = window.getSelection();

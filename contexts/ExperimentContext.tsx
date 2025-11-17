@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ExperimentCondition, TaskType, ExperimentSession } from '../types';
+import { ExperimentCondition, TaskType, ExperimentSession, ParticipantInfo } from '../types';
 
 interface ExperimentContextType {
   session: ExperimentSession | null;
+  participantInfo: ParticipantInfo | null;
+  setParticipantInfo: (info: ParticipantInfo) => void;
   startSession: (participantId: string, condition: ExperimentCondition, taskName: TaskType) => void;
   endSession: () => void;
 }
@@ -11,6 +13,7 @@ const ExperimentContext = createContext<ExperimentContextType | undefined>(undef
 
 export const ExperimentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<ExperimentSession | null>(null);
+  const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
 
   const startSession = (participantId: string, condition: ExperimentCondition, taskName: TaskType) => {
     setSession({
@@ -18,6 +21,7 @@ export const ExperimentProvider: React.FC<{ children: ReactNode }> = ({ children
       condition,
       task_name: taskName,
       start_time: Date.now(),
+      participantInfo: participantInfo || undefined,
     });
   };
 
@@ -26,7 +30,7 @@ export const ExperimentProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   return (
-    <ExperimentContext.Provider value={{ session, startSession, endSession }}>
+    <ExperimentContext.Provider value={{ session, participantInfo, setParticipantInfo, startSession, endSession }}>
       {children}
     </ExperimentContext.Provider>
   );

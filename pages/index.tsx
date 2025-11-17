@@ -3,7 +3,9 @@ import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useCamera } from '../contexts/CameraContext';
 import { useExperiment } from '../contexts/ExperimentContext';
-import { ExperimentCondition, TaskType } from '../types';
+import { ExperimentCondition, TaskType, ParticipantInfo } from '../types';
+import { ConsentForm } from '../components/ConsentForm';
+import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
 const taskDescriptions: Record<TaskType, string> = {
   typing: `
@@ -32,15 +34,27 @@ const taskDescriptions: Record<TaskType, string> = {
 const Home: NextPage = () => {
   const router = useRouter();
   const { isPermissionGranted, isLoading, error, requestPermission } = useCamera();
-  const { startSession } = useExperiment();
+  const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
-  const [participantId, setParticipantId] = useState('');
   const [condition, setCondition] = useState<ExperimentCondition>('rotate');
   const [taskName, setTaskName] = useState<TaskType>('typing');
 
+  // 同意フォームが完了したかどうか
+  const consentCompleted = participantInfo !== null;
+
+  // 同意フォームの送信処理
+  const handleConsentSubmit = (info: ParticipantInfo) => {
+    setParticipantInfo(info);
+
+    // 参加者情報のCSVをダウンロード
+    const csvContent = generateParticipantInfoCSV(info);
+    const filename = `${info.participantId}_consent.csv`;
+    downloadCSV(csvContent, filename);
+  };
+
   const handleStartTask = () => {
-    if (!participantId.trim()) {
-      alert('参加者IDを入力してください');
+    if (!participantInfo) {
+      alert('参加者情報が設定されていません');
       return;
     }
 
@@ -50,15 +64,31 @@ const Home: NextPage = () => {
     }
 
     // セッションを開始
-    startSession(participantId, condition, taskName);
+    startSession(participantInfo.participantId, condition, taskName);
 
     // タスクページに遷移
     router.push(`/${taskName}`);
   };
 
+  // 同意フォームがまだ完了していない場合は同意フォームを表示
+  if (!consentCompleted) {
+    return <ConsentForm onSubmit={handleConsentSubmit} />;
+  }
+
+  // 同意フォーム完了後は実験設定画面を表示
   return (
     <div style={containerStyle}>
       <h1 style={titleStyle}>実験用Webアプリケーション</h1>
+
+      {/* 参加者情報の表示 */}
+      <div style={participantInfoBoxStyle}>
+        <p style={participantInfoTextStyle}>
+          参加者ID: <strong>{participantInfo.participantId}</strong>
+        </p>
+        <p style={participantInfoSubTextStyle}>
+          同意フォームのCSVがダウンロードされました
+        </p>
+      </div>
 
       {isLoading && (
         <div style={loadingBoxStyle}>カメラを初期化中...</div>
@@ -75,18 +105,6 @@ const Home: NextPage = () => {
 
       {isPermissionGranted && !isLoading && (
         <div style={formContainerStyle}>
-          {/* 参加者ID */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>参加者ID</label>
-            <input
-              type="text"
-              value={participantId}
-              onChange={(e) => setParticipantId(e.target.value)}
-              placeholder="例: P001"
-              style={inputStyle}
-            />
-          </div>
-
           {/* 実験条件 */}
           <div style={formGroupStyle}>
             <label style={labelStyle}>実験条件</label>
@@ -176,8 +194,29 @@ const containerStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
   fontSize: '32px',
   fontWeight: 'bold',
-  marginBottom: '30px',
+  marginBottom: '20px',
   color: '#333',
+};
+
+const participantInfoBoxStyle: React.CSSProperties = {
+  backgroundColor: '#e8f5e9',
+  padding: '15px 25px',
+  borderRadius: '8px',
+  marginBottom: '20px',
+  border: '2px solid #66bb6a',
+  textAlign: 'center',
+};
+
+const participantInfoTextStyle: React.CSSProperties = {
+  fontSize: '18px',
+  color: '#2e7d32',
+  margin: '5px 0',
+};
+
+const participantInfoSubTextStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#558b2f',
+  margin: '5px 0',
 };
 
 const loadingBoxStyle: React.CSSProperties = {

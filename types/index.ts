@@ -115,6 +115,7 @@ export interface ParticipantInfo {
   participantId: string;
   age: number;
   gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  handedness: 'right' | 'left' | 'other';
   videoConsent: VideoConsent;
 }
 

@@ -8,10 +8,24 @@ interface ConsentFormProps {
 export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
   const [participantId, setParticipantId] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'other' | 'prefer_not_to_say'>('prefer_not_to_say');
+  const [gender, setGender] = useState<'male' | 'female' >('male');
+  const [handedness, setHandedness] = useState<'right' | 'left' >('right');
   const [mainConsent, setMainConsent] = useState<'approved' | 'conditional' | 'not_approved' | ''>('');
   const [subConsent, setSubConsent] = useState<'identifiable' | 'anonymized' | ''>('');
   const [conditions, setConditions] = useState('');
+
+  // デバッグ用スキップボタンのハンドラ
+  const handleSkip = () => {
+    const participantInfo = {
+      participantId: '999',
+      age: 0,
+      gender: 'male',
+      handedness: 'right',
+      videoConsent: 'approved',
+      debug: true,
+    } as any;
+    onSubmit(participantInfo);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +71,7 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
       participantId: participantId.trim(),
       age: ageNum,
       gender,
+      handedness,
       videoConsent: {
         consentType,
         conditions: mainConsent === 'conditional' ? conditions.trim() : undefined,
@@ -69,6 +84,10 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
   return (
     <div style={containerStyle}>
       <h1 style={titleStyle}>実験参加同意フォーム</h1>
+
+      <button type="button" style={{...submitButtonStyle, backgroundColor: '#888', marginBottom: 16}} onClick={handleSkip}>
+        入力をスキップ（デバッグ用）
+      </button>
 
       <form onSubmit={handleSubmit} style={formStyle}>
         {/* 参加者ID */}
@@ -121,23 +140,30 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
               />
               <span style={radioTextStyle}>女性</span>
             </label>
+          </div>
+        </div>
+
+        {/* 利き手 */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>利き手 *</label>
+          <div style={radioGroupStyle}>
             <label style={radioLabelStyle}>
               <input
                 type="radio"
-                value="other"
-                checked={gender === 'other'}
-                onChange={(e) => setGender(e.target.value as any)}
+                value="right"
+                checked={handedness === 'right'}
+                onChange={(e) => setHandedness(e.target.value as any)}
               />
-              <span style={radioTextStyle}>その他</span>
+              <span style={radioTextStyle}>右利き</span>
             </label>
             <label style={radioLabelStyle}>
               <input
                 type="radio"
-                value="prefer_not_to_say"
-                checked={gender === 'prefer_not_to_say'}
-                onChange={(e) => setGender(e.target.value as any)}
+                value="left"
+                checked={handedness === 'left'}
+                onChange={(e) => setHandedness(e.target.value as any)}
               />
-              <span style={radioTextStyle}>回答しない</span>
+              <span style={radioTextStyle}>左利き</span>
             </label>
           </div>
         </div>

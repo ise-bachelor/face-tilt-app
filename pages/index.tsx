@@ -46,10 +46,12 @@ const Home: NextPage = () => {
   const handleConsentSubmit = (info: ParticipantInfo) => {
     setParticipantInfo(info);
 
-    // 参加者情報のCSVをダウンロード
-    const csvContent = generateParticipantInfoCSV(info);
-    const filename = `${info.participantId}_consent.csv`;
-    downloadCSV(csvContent, filename);
+    // デバッグモード（IDが999）の場合はCSVダウンロードしない
+    if (info.participantId !== '999') {
+      const csvContent = generateParticipantInfoCSV(info);
+      const filename = `${info.participantId}_consent.csv`;
+      downloadCSV(csvContent, filename);
+    }
   };
 
   const handleStartTask = () => {

@@ -278,6 +278,14 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                           type="text"
                           value={inputValue}
                           onChange={(e) => handleInputChange(missingEntry.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            // input要素内でのキー操作は伝播を停止
+                            e.stopPropagation();
+                          }}
+                          onBeforeInput={(e) => {
+                            // input要素内での入力は伝播を停止
+                            e.stopPropagation();
+                          }}
                           style={inlineInputStyle}
                           placeholder=""
                           autoFocus

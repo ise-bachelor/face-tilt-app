@@ -99,10 +99,10 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     ctx.fillText('GOAL', (GOAL_X_MIN + GOAL_X_MAX) / 2, CENTER_Y);
   }, [currentConfig]);
 
-  // 初期描画とcurrentConfig変更時の再描画
+  // 初期描画とcurrentTrialIndex変更時の再描画
   useEffect(() => {
     drawCanvas();
-  }, [drawCanvas]);
+  }, [drawCanvas, currentTrialIndex]);
 
   // 通路内判定
   const isInsideTunnel = (x: number, y: number): boolean => {
@@ -267,9 +267,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       const nextTrialIndex = currentTrialIndex + 1;
       if (nextTrialIndex < totalTrials) {
         setCurrentTrialIndex(nextTrialIndex);
-        setTimeout(() => {
-          drawCanvas();
-        }, 100);
+        // currentConfigが変更されると、useEffectでdrawCanvas()が自動的に呼び出される
       } else {
         // 全トライアル完了
         onComplete(newTrials);

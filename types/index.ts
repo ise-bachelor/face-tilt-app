@@ -97,10 +97,33 @@ export interface SteeringTrialLog {
   success: boolean;
 }
 
+// ビデオ画像公開の同意タイプ
+export type VideoConsentType =
+  | 'approved_identifiable'      // 顔が特定される形式のままで公開OK
+  | 'approved_anonymized'        // モザイク処理等で個人が特定されない形式で公開OK
+  | 'approved_with_conditions'   // 条件付きで公開を承諾
+  | 'not_approved';              // 承諾しない
+
+// ビデオ画像公開についての同意情報
+export interface VideoConsent {
+  consentType: VideoConsentType;
+  conditions?: string;  // 条件付き承諾の場合の条件
+}
+
+// 参加者情報
+export interface ParticipantInfo {
+  participantId: string;
+  age: number;
+  gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  handedness: 'right' | 'left' | 'other';
+  videoConsent: VideoConsent;
+}
+
 // 実験セッション情報
 export interface ExperimentSession {
   participant_id: string;
   condition: ExperimentCondition;
   task_name: TaskType;
   start_time: number;
+  participantInfo?: ParticipantInfo;  // 参加者情報を追加
 }

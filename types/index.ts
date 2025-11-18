@@ -11,7 +11,7 @@ export type Rotation = {
 export type ExperimentCondition = 'rotate' | 'default';
 
 // タスク種類
-export type TaskType = 'typing' | 'fitts' | 'steering';
+export type TaskType = 'fitts' | 'steering' | 'minutes';
 
 // 頭部姿勢（基準との差分）
 export interface HeadPose {
@@ -126,4 +126,24 @@ export interface ExperimentSession {
   task_name: TaskType;
   start_time: number;
   participantInfo?: ParticipantInfo;  // 参加者情報を追加
+}
+
+// 議事録編集タスク: 欠落文入力ログ
+export interface MinutesInputLog {
+  sentenceId: string;
+  T_highlight_pressed: number;
+  T_typing_start: number;
+  T_typing_end: number;
+  search_time: number;  // T_typing_start - T_highlight_pressed
+  input_time: number;   // T_highlight_pressed(next) - T_typing_start
+  modal_time: number;   // モーダル表示時間
+  need_fix: boolean;    // ハイライト押下時に入力が正しくなかったか
+  fix_count: number;    // 修正を促された回数
+}
+
+// 議事録編集タスク: 誤字指摘ログ
+export interface MinutesTypoLog {
+  timestamp: number;
+  error_id: string;
+  corrected: boolean;
 }

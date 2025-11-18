@@ -8,13 +8,6 @@ import { ConsentForm } from '../components/ConsentForm';
 import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
 const taskDescriptions: Record<TaskType, string> = {
-  typing: `
-【議事録作成タスク】
-会議音声を聞きながら議事録を作成してください。
-- 音声は自由に巻き戻し・一時停止できます
-- テキストエリアに自由に記述してください
-- 音声が終了したら完了ボタンを押してください
-  `.trim(),
   fitts: `
 【フィッツの法則タスク】
 円周上に並んだターゲットを交互にクリックしてください。
@@ -29,6 +22,14 @@ const taskDescriptions: Record<TaskType, string> = {
 - トンネル長さ: 100px / 200px / 400px
 - 練習1回の後、本番9パターンを実施します
   `.trim(),
+  minutes: `
+【議事録編集タスク】
+左側のお手本と同じになるように、右側の議事録を編集してください。
+- 欠落している文を8箇所入力します
+- 誤字を5箇所見つけてクリックで修正します
+- 練習1回の後、本番8文を実施します
+- 所要時間: 約10分
+  `.trim(),
 };
 
 const Home: NextPage = () => {
@@ -37,7 +38,7 @@ const Home: NextPage = () => {
   const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
   const [condition, setCondition] = useState<ExperimentCondition>('rotate');
-  const [taskName, setTaskName] = useState<TaskType>('typing');
+  const [taskName, setTaskName] = useState<TaskType>('minutes');
 
   // 同意フォームが完了したかどうか
   const consentCompleted = participantInfo !== null;
@@ -139,11 +140,11 @@ const Home: NextPage = () => {
               <label style={radioLabelStyle}>
                 <input
                   type="radio"
-                  value="typing"
-                  checked={taskName === 'typing'}
+                  value="minutes"
+                  checked={taskName === 'minutes'}
                   onChange={(e) => setTaskName(e.target.value as TaskType)}
                 />
-                <span style={radioTextStyle}>議事録作成タスク</span>
+                <span style={radioTextStyle}>議事録編集タスク</span>
               </label>
               <label style={radioLabelStyle}>
                 <input

@@ -22,12 +22,15 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
   const [currentIndex, setCurrentIndex] = useState(0); // 0: 練習, 1-8: 本番
   const [randomOrder] = useState<number[]>(() => generateRandomOrder());
   const [isHighlighted, setIsHighlighted] = useState(false);
-  const [highlightPressedTime, setHighlightPressedTime] = useState<number>(0);
+  const [isPositionFound, setIsPositionFound] = useState(false); // 正しい位置が見つかったか
+
+  // タイマー状態
+  const [searchStartTime, setSearchStartTime] = useState<number>(0); // 探索開始時刻
+  const [inputStartTime, setInputStartTime] = useState<number>(0); // 入力開始時刻
 
   // 入力状態
   const [missingInputs, setMissingInputs] = useState<Record<string, string>>({});
   const [fixedTypos, setFixedTypos] = useState<Set<string>>(new Set());
-  const [typingStartTime, setTypingStartTime] = useState<number>(0);
 
   // ログ
   const [inputLogs, setInputLogs] = useState<MinutesInputLog[]>([]);
@@ -82,71 +85,87 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
   }, [missingInputs]);
 
   // 「次の文をハイライト」ボタンハンドラ
-  const handleNextHighlight = () => {
-    if (!isHighlighted) {
-      // ハイライト開始
-      setIsHighlighted(true);
-      setHighlightPressedTime(Date.now());
-    } else {
-      // 入力チェック
-      if (!currentMissing) return;
+  const handleHighlight = () => {
+    // ハイライト開始
+    setIsHighlighted(true);
+    setIsPositionFound(false);
+    setSearchStartTime(Date.now());
+  };
 
-      const userInput = missingInputs[currentMissing.id] || '';
-      const correctText = currentMissing.text;
-
-      // デバッグ用ログ
-      console.log('入力チェック:', {
-        userInput: `"${userInput}"`,
-        correctText: `"${correctText}"`,
-        userInputTrim: `"${userInput.trim()}"`,
-        correctTextTrim: `"${correctText.trim()}"`,
-        isEqual: userInput.trim() === correctText.trim()
-      });
-
-      if (userInput.trim() !== correctText.trim()) {
-        // 入力が不正確
-        setCurrentFixCount(prev => prev + 1);
-        alert(`入力内容が正しくありません。もう一度確認してください。\n\n期待: "${correctText}"\n入力: "${userInput}"`);
-        return;
-      }
-
-      // 入力が正確
+  // 正しい位置がクリックされた時のハンドラ
+  const handlePositionClick = () => {
+    if (!isPositionFound) {
       const now = Date.now();
+      setIsPositionFound(true);
+      setInputStartTime(now);
 
-      // ログを記録（練習タスクの場合は記録しない）
-      let newInputLogs = inputLogs;
-      if (!isPractice) {
-        const log: MinutesInputLog = {
-          sentenceId: currentMissing.id,
-          T_highlight_pressed: highlightPressedTime,
-          T_typing_start: typingStartTime,
-          T_typing_end: now,
-          search_time: typingStartTime - highlightPressedTime,
-          input_time: now - typingStartTime,
-          need_fix: currentFixCount > 0,
-          fix_count: currentFixCount,
-        };
-        newInputLogs = [...inputLogs, log];
-        setInputLogs(newInputLogs);
-      }
+      console.log('正しい位置がクリックされました', {
+        searchTime: now - searchStartTime,
+      });
+    }
+  };
 
-      // 次の文へ進む
-      setIsHighlighted(false);
-      setCurrentFixCount(0);
-      setTypingStartTime(0);
+  // 「次の文へ」ボタンハンドラ
+  const handleNextSentence = () => {
+    if (!currentMissing) return;
 
-      if (isPractice) {
-        // 練習完了 → 本番へ
-        setIsPractice(false);
-        setCurrentIndex(1);
-        alert('練習タスクが完了しました。本番タスクを開始します。');
+    const userInput = missingInputs[currentMissing.id] || '';
+    const correctText = currentMissing.text;
+
+    // デバッグ用ログ
+    console.log('入力チェック:', {
+      userInput: `"${userInput}"`,
+      correctText: `"${correctText}"`,
+      userInputTrim: `"${userInput.trim()}"`,
+      correctTextTrim: `"${correctText.trim()}"`,
+      isEqual: userInput.trim() === correctText.trim()
+    });
+
+    if (userInput.trim() !== correctText.trim()) {
+      // 入力が不正確
+      setCurrentFixCount(prev => prev + 1);
+      alert(`入力内容が正しくありません。もう一度確認してください。\n\n期待: "${correctText}"\n入力: "${userInput}"`);
+      return;
+    }
+
+    // 入力が正確
+    const now = Date.now();
+
+    // ログを記録（練習タスクの場合は記録しない）
+    let newInputLogs = inputLogs;
+    if (!isPractice) {
+      const log: MinutesInputLog = {
+        sentenceId: currentMissing.id,
+        T_highlight_pressed: searchStartTime,
+        T_typing_start: inputStartTime,
+        T_typing_end: now,
+        search_time: inputStartTime - searchStartTime,
+        input_time: now - inputStartTime,
+        need_fix: currentFixCount > 0,
+        fix_count: currentFixCount,
+      };
+      newInputLogs = [...inputLogs, log];
+      setInputLogs(newInputLogs);
+    }
+
+    // 次の文へ進む
+    setIsHighlighted(false);
+    setIsPositionFound(false);
+    setCurrentFixCount(0);
+    setInputStartTime(0);
+    setSearchStartTime(0);
+
+    if (isPractice) {
+      // 練習完了 → 本番へ
+      setIsPractice(false);
+      setCurrentIndex(1);
+      alert('練習タスクが完了しました。本番タスクを開始します。');
+    } else {
+      if (currentIndex < 8) {
+        setCurrentIndex(prev => prev + 1);
       } else {
-        if (currentIndex < 8) {
-          setCurrentIndex(prev => prev + 1);
-        } else {
-          // 全タスク完了
-          onComplete(newInputLogs, typoLogs);
-        }
+        // 全タスク完了
+        onComplete(newInputLogs, typoLogs);
       }
     }
   };
@@ -158,11 +177,6 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       cursorPositionRef.current = range.startOffset;
-    }
-
-    // 初回入力時にタイムスタンプを記録
-    if (typingStartTime === 0 && value.length > 0) {
-      setTypingStartTime(Date.now());
     }
 
     setMissingInputs(prev => ({
@@ -279,15 +293,20 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                     return (
                       <span
                         key={sentence.id}
-                        ref={isCurrentEditing ? editableSpanRef : null}
-                        contentEditable={isCurrentEditing && !isCompleted}
+                        ref={isCurrentEditing && isPositionFound ? editableSpanRef : null}
+                        contentEditable={isCurrentEditing && isPositionFound && !isCompleted}
                         suppressContentEditableWarning={true}
+                        onClick={() => {
+                          if (isCurrentEditing && !isPositionFound && !isCompleted) {
+                            handlePositionClick();
+                          }
+                        }}
                         onInput={(e) => {
                           const value = e.currentTarget.textContent || '';
                           handleInputChange(missingEntry.id, value);
                         }}
                         onKeyDown={(e) => {
-                          if (!isCurrentEditing || isCompleted) {
+                          if (!isCurrentEditing || !isPositionFound || isCompleted) {
                             e.preventDefault();
                           }
                         }}
@@ -349,8 +368,12 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
             <span>本番タスク: {currentIndex} / 8</span>
           )}
         </div>
-        <button onClick={handleNextHighlight} style={buttonStyle}>
-          {isHighlighted ? '入力確認・次の文へ' : '次の文をハイライト'}
+        <button
+          onClick={isHighlighted ? handleNextSentence : handleHighlight}
+          style={buttonStyle}
+          disabled={isHighlighted && !isPositionFound}
+        >
+          {isHighlighted ? '次の文へ' : '次の文をハイライト'}
         </button>
       </div>
 

@@ -32,6 +32,12 @@ const SteeringTaskPage = () => {
   const [isTaskCompleted, setIsTaskCompleted] = useState(false);
   const [steeringLogs, setSteeringLogs] = useState<SteeringTrialLog[]>([]);
 
+  // 練習モード管理
+  const [isPractice, setIsPractice] = useState(true);
+  const [practiceRound, setPracticeRound] = useState(0);
+  const [showPracticeCompleteButton, setShowPracticeCompleteButton] = useState(false);
+  const PRACTICE_ROUNDS = 3;
+
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
@@ -70,6 +76,25 @@ const SteeringTaskPage = () => {
       console.error('タスク開始エラー:', error);
       alert('録画の開始に失敗しました。');
     }
+  };
+
+  // 練習完了時の処理
+  const handlePracticeComplete = () => {
+    const nextRound = practiceRound + 1;
+    if (nextRound >= PRACTICE_ROUNDS) {
+      // 3回完了したら練習完了ボタンを表示
+      setShowPracticeCompleteButton(true);
+    } else {
+      // 次の練習ラウンドへ
+      setPracticeRound(nextRound);
+    }
+  };
+
+  // 練習完了後、本番タスク開始
+  const handleStartMainTask = () => {
+    setIsPractice(false);
+    setShowPracticeCompleteButton(false);
+    setPracticeRound(0);
   };
 
   // タスク完了
@@ -216,7 +241,22 @@ const SteeringTaskPage = () => {
             participantId={session.participant_id}
             tiltCondition={tiltCondition}
             onComplete={handleComplete}
+            isPractice={isPractice}
+            practiceRound={practiceRound}
+            onPracticeComplete={handlePracticeComplete}
           />
+
+          {/* 練習完了後のタスク開始ボタン */}
+          {showPracticeCompleteButton && (
+            <div style={practiceCompleteOverlayStyle}>
+              <div style={practiceCompleteContainerStyle}>
+                <p style={practiceCompleteTextStyle}>練習が完了しました！</p>
+                <button onClick={handleStartMainTask} style={practiceCompleteButtonStyle}>
+                  本番タスク開始
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -317,6 +357,46 @@ const homeButtonStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: '8px',
   cursor: 'pointer',
+};
+
+const practiceCompleteOverlayStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 100,
+};
+
+const practiceCompleteContainerStyle: React.CSSProperties = {
+  backgroundColor: 'white',
+  padding: '40px',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+  textAlign: 'center',
+};
+
+const practiceCompleteTextStyle: React.CSSProperties = {
+  fontSize: '24px',
+  fontWeight: 'bold',
+  marginBottom: '20px',
+  color: '#333',
+};
+
+const practiceCompleteButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
 };
 
 export default SteeringTaskPage;

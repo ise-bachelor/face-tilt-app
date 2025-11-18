@@ -58,6 +58,12 @@ const FittsTaskPage = () => {
   const [trialStartTime, setTrialStartTime] = useState(0);
   const [trialLogs, setTrialLogs] = useState<FittsTrialLog[]>([]);
 
+  // 練習モード管理
+  const [isPractice, setIsPractice] = useState(true);
+  const [practiceRound, setPracticeRound] = useState(0);
+  const [showPracticeCompleteButton, setShowPracticeCompleteButton] = useState(false);
+  const PRACTICE_ROUNDS = 3;
+
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
@@ -125,51 +131,80 @@ const FittsTaskPage = () => {
     // エラー判定（正しいターゲットをクリックしたか）
     const isError = clickedIndex !== currentTargetIndex;
 
-    // ログ記録
-    const log: FittsTrialLog = {
-      participantId: session.participant_id,
-      tiltCondition: session.condition === 'rotate' ? 'tilt' : 'baseline',
-      trialId: totalTrials,
-      levelId: currentLevel.id,
-      D: currentLevel.R * 2, // 直径 = 半径 × 2
-      W: currentLevel.W,
-      startTime,
-      endTime,
-      MT,
-      targetIndex: currentTargetIndex,
-      clickedIndex,
-      isError,
-    };
+    // 練習モードでない場合のみログを記録
+    if (!isPractice) {
+      const log: FittsTrialLog = {
+        participantId: session.participant_id,
+        tiltCondition: session.condition === 'rotate' ? 'tilt' : 'baseline',
+        trialId: totalTrials,
+        levelId: currentLevel.id,
+        D: currentLevel.R * 2, // 直径 = 半径 × 2
+        W: currentLevel.W,
+        startTime,
+        endTime,
+        MT,
+        targetIndex: currentTargetIndex,
+        clickedIndex,
+        isError,
+      };
 
-    setTrialLogs(prev => [...prev, log]);
+      setTrialLogs(prev => [...prev, log]);
+    }
 
     // 正しいターゲットがクリックされた場合のみ次へ進む
     if (!isError) {
-      const newTrialInLevel = currentTrialInLevel + 1;
-
-      // 現在のレベルが終了したか確認
-      if (newTrialInLevel >= TRIALS_PER_LEVEL) {
-        const nextLevelIndex = currentLevelIndex + 1;
-
-        // 全レベルが終了したか確認
-        if (nextLevelIndex >= DIFFICULTY_LEVELS.length) {
-          // 全タスク完了
-          handleCompleteTask();
-          return;
+      // 練習モードの場合
+      if (isPractice) {
+        const nextRound = practiceRound + 1;
+        if (nextRound >= PRACTICE_ROUNDS) {
+          // 練習完了：ボタンを表示
+          setShowPracticeCompleteButton(true);
+          setCurrentTargetIndex(null);
         } else {
-          // 次のレベルへ
-          setCurrentLevelIndex(nextLevelIndex);
-          setCurrentTrialInLevel(0);
-          initializeFirstTarget();
+          // 次の練習ラウンド
+          setPracticeRound(nextRound);
+          const nextIndex = getNextTargetIndex(currentTargetIndex);
+          setCurrentTargetIndex(nextIndex);
+          setTrialStartTime(Date.now());
         }
       } else {
-        // 同じレベルの次のトライアルへ
-        setCurrentTrialInLevel(newTrialInLevel);
-        const nextIndex = getNextTargetIndex(currentTargetIndex);
-        setCurrentTargetIndex(nextIndex);
-        setTrialStartTime(Date.now());
+        // 本番モード
+        const newTrialInLevel = currentTrialInLevel + 1;
+
+        // 現在のレベルが終了したか確認
+        if (newTrialInLevel >= TRIALS_PER_LEVEL) {
+          const nextLevelIndex = currentLevelIndex + 1;
+
+          // 全レベルが終了したか確認
+          if (nextLevelIndex >= DIFFICULTY_LEVELS.length) {
+            // 全タスク完了
+            handleCompleteTask();
+            return;
+          } else {
+            // 次のレベルへ
+            setCurrentLevelIndex(nextLevelIndex);
+            setCurrentTrialInLevel(0);
+            initializeFirstTarget();
+          }
+        } else {
+          // 同じレベルの次のトライアルへ
+          setCurrentTrialInLevel(newTrialInLevel);
+          const nextIndex = getNextTargetIndex(currentTargetIndex);
+          setCurrentTargetIndex(nextIndex);
+          setTrialStartTime(Date.now());
+        }
       }
     }
+  };
+
+  // 練習完了後、本番タスク開始
+  const handleStartMainTask = () => {
+    setIsPractice(false);
+    setShowPracticeCompleteButton(false);
+    setPracticeRound(0);
+    setCurrentLevelIndex(0);
+    setCurrentTrialInLevel(0);
+    initializeFirstTarget();
   };
 
   // タスク完了処理
@@ -315,14 +350,25 @@ const FittsTaskPage = () => {
         <div style={contentContainerStyle}>
           {/* 情報表示 */}
           <div style={infoContainerStyle}>
-            <p>レベル: {currentLevel.label}</p>
-            <p>
-              進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
-            </p>
-            <p>
-              全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
-            </p>
-            <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
+            {isPractice ? (
+              <>
+                <p style={{ fontWeight: 'bold', color: '#1976d2' }}>練習モード</p>
+                <p>
+                  練習回数: {practiceRound + 1} / {PRACTICE_ROUNDS}
+                </p>
+              </>
+            ) : (
+              <>
+                <p>レベル: {currentLevel.label}</p>
+                <p>
+                  進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
+                </p>
+                <p>
+                  全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
+                </p>
+                <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
+              </>
+            )}
           </div>
 
           {/* ターゲット表示エリア */}
@@ -349,6 +395,23 @@ const FittsTaskPage = () => {
                 />
               );
             })}
+
+            {/* 練習完了後のタスク開始ボタン（ターゲットの中心に配置） */}
+            {showPracticeCompleteButton && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: typeof window !== 'undefined' ? window.innerWidth / 2 - 100 : 300,
+                  top: typeof window !== 'undefined' ? window.innerHeight / 2 - 30 : 270,
+                  width: 200,
+                  textAlign: 'center',
+                }}
+              >
+                <button onClick={handleStartMainTask} style={practiceCompleteButtonStyle}>
+                  本番タスク開始
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -468,6 +531,18 @@ const targetStyle: React.CSSProperties = {
   position: 'absolute',
   borderRadius: '50%',
   transition: 'background-color 0.1s',
+};
+
+const practiceCompleteButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
 };
 
 export default FittsTaskPage;

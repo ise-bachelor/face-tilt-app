@@ -213,7 +213,6 @@ const pageStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '20px',
 };
 
 export default MinutesTaskPage;

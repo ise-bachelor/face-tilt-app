@@ -27,13 +27,15 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
   // 入力状態
   const [missingInputs, setMissingInputs] = useState<Record<string, string>>({});
   const [fixedTypos, setFixedTypos] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [typingStartTime, setTypingStartTime] = useState<number>(0);
 
   // ログ
   const [inputLogs, setInputLogs] = useState<MinutesInputLog[]>([]);
   const [typoLogs, setTypoLogs] = useState<MinutesTypoLog[]>([]);
   const [currentFixCount, setCurrentFixCount] = useState(0);
+
+  // 左画面のハイライト位置への参照
+  const highlightRef = useRef<HTMLSpanElement>(null);
 
   // 現在の欠落文を取得
   const getCurrentMissingSentence = (): MissingSentence | null => {
@@ -47,6 +49,16 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
   };
 
   const currentMissing = getCurrentMissingSentence();
+
+  // ハイライト時に自動スクロール
+  useEffect(() => {
+    if (isHighlighted && highlightRef.current) {
+      highlightRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [isHighlighted, currentMissing]);
 
   // 「次の文をハイライト」ボタンハンドラ
   const handleNextHighlight = () => {
@@ -99,7 +111,6 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
 
       // 次の文へ進む
       setIsHighlighted(false);
-      setEditingId(null);
       setCurrentFixCount(0);
       setTypingStartTime(0);
 
@@ -119,19 +130,13 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
     }
   };
 
-  // 欠落箇所のクリックハンドラ
-  const handleMissingClick = (sentenceId: string) => {
-    if (!isHighlighted) return;
-    if (currentMissing?.id !== sentenceId) return;
-
-    setEditingId(sentenceId);
-    if (typingStartTime === 0) {
-      setTypingStartTime(Date.now());
-    }
-  };
-
   // 入力変更ハンドラ
   const handleInputChange = (sentenceId: string, value: string) => {
+    // 初回入力時にタイムスタンプを記録
+    if (typingStartTime === 0 && value.length > 0) {
+      setTypingStartTime(Date.now());
+    }
+
     setMissingInputs(prev => ({
       ...prev,
       [sentenceId]: value,
@@ -184,6 +189,7 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                   return (
                     <span
                       key={sentence.id}
+                      ref={isCurrentHighlight ? highlightRef : null}
                       style={{
                         backgroundColor: isCurrentHighlight ? '#ffeb3b' : 'transparent',
                         fontWeight: isCurrentHighlight ? 'bold' : 'normal',
@@ -213,51 +219,8 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
               <h3 style={sectionTitleStyle}>{section.title}</h3>
               <p
                 style={paragraphStyle}
-                contentEditable={true}
+                contentEditable={false}
                 suppressContentEditableWarning={true}
-                onKeyDown={(e) => {
-                  // input要素内かチェック
-                  const target = e.target as HTMLElement;
-                  if (target.tagName === 'INPUT') {
-                    // input内では通常の入力を許可
-                    return;
-                  }
-
-                  // input外では、バックスペースとDeleteキーを無効化
-                  if (e.key === 'Backspace' || e.key === 'Delete') {
-                    e.preventDefault();
-                    return;
-                  }
-
-                  // input外でのすべての文字入力をブロック
-                  if (e.key.length === 1) {
-                    e.preventDefault();
-                  }
-                }}
-                onBeforeInput={(e) => {
-                  // 欠落箇所以外の編集をブロック
-                  const selection = window.getSelection();
-                  if (!selection || selection.rangeCount === 0) {
-                    e.preventDefault();
-                    return;
-                  }
-
-                  // 現在のカーソル位置が編集可能な欠落箇所かチェック
-                  const range = selection.getRangeAt(0);
-                  const container = range.startContainer;
-
-                  // 欠落箇所のinput要素内かチェック
-                  let element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container as HTMLElement;
-                  while (element && element.tagName !== 'P') {
-                    if (element.tagName === 'INPUT') {
-                      return; // input内なので編集を許可
-                    }
-                    element = element.parentElement as HTMLElement;
-                  }
-
-                  // 欠落箇所以外なので編集をブロック
-                  e.preventDefault();
-                }}
               >
                 {section.sentences.map((sentence, sentenceIndex) => {
                   // この文が欠落しているか確認
@@ -266,55 +229,38 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                   );
 
                   if (missingEntry) {
-                    // 欠落文 - 入力欄を表示（インラインで）
-                    const isEditing = editingId === missingEntry.id;
+                    // 欠落文 - contentEditableな領域を表示
+                    const isCurrentEditing = isHighlighted && currentMissing?.id === missingEntry.id;
                     const inputValue = missingInputs[missingEntry.id] || '';
                     const isCompleted = inputLogs.some(log => log.sentenceId === missingEntry.id);
 
-                    if (isEditing && !isCompleted) {
-                      return (
-                        <input
-                          key={sentence.id}
-                          type="text"
-                          value={inputValue}
-                          onChange={(e) => handleInputChange(missingEntry.id, e.target.value)}
-                          onKeyDown={(e) => {
-                            // input要素内でのキー操作は伝播を停止
-                            e.stopPropagation();
-                          }}
-                          onBeforeInput={(e) => {
-                            // input要素内での入力は伝播を停止
-                            e.stopPropagation();
-                          }}
-                          style={inlineInputStyle}
-                          placeholder=""
-                          autoFocus
-                        />
-                      );
-                    } else if (isCompleted) {
-                      return (
-                        <span
-                          key={sentence.id}
-                          style={{
-                            backgroundColor: '#c8e6c9',
-                            padding: '2px',
-                            borderRadius: '2px',
-                          }}
-                        >
-                          {inputValue}
-                        </span>
-                      );
-                    } else {
-                      // 未入力・未クリック状態：空白なし
-                      return (
-                        <span
-                          key={sentence.id}
-                          onClick={() => handleMissingClick(missingEntry.id)}
-                          style={missingSpanStyle}
-                        >
-                        </span>
-                      );
-                    }
+                    return (
+                      <span
+                        key={sentence.id}
+                        contentEditable={isCurrentEditing && !isCompleted}
+                        suppressContentEditableWarning={true}
+                        onInput={(e) => {
+                          const value = e.currentTarget.textContent || '';
+                          handleInputChange(missingEntry.id, value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!isCurrentEditing || isCompleted) {
+                            e.preventDefault();
+                          }
+                        }}
+                        style={{
+                          backgroundColor: isCompleted ? '#c8e6c9' : (isCurrentEditing ? '#fff9c4' : 'transparent'),
+                          minWidth: isCurrentEditing ? '200px' : 'auto',
+                          display: 'inline-block',
+                          borderBottom: isCurrentEditing ? '2px solid #1976d2' : 'none',
+                          padding: '2px',
+                          borderRadius: '2px',
+                          outline: 'none',
+                        }}
+                      >
+                        {inputValue}
+                      </span>
+                    );
                   }
 
                   // 通常の文 - 誤字があるか確認
@@ -472,24 +418,4 @@ const paragraphStyle: React.CSSProperties = {
   margin: '0 0 16px 0',
   fontFamily: "'Arial', 'Helvetica', sans-serif",
   textAlign: 'justify',
-};
-
-// 欠落箇所のインライン入力スタイル
-const inlineInputStyle: React.CSSProperties = {
-  fontSize: '16px',
-  lineHeight: '1.8',
-  border: 'none',
-  borderBottom: '1px solid #1976d2',
-  outline: 'none',
-  fontFamily: "'Arial', 'Helvetica', sans-serif",
-  backgroundColor: 'transparent',
-  padding: '0 2px',
-  minWidth: '200px',
-};
-
-// 欠落箇所のスパンスタイル（目立たない）
-const missingSpanStyle: React.CSSProperties = {
-  cursor: 'text',
-  display: 'inline',
-  borderBottom: '1px solid transparent',
 };

@@ -96,7 +96,7 @@ export const minutesDataDefault: MinutesData = {
         },
         {
           id: "s2-3",
-          text: "これらは管理体制の不十分さや予算配分の偏りが原因であり、持続可能な維持管理計画が不可欠である。"
+          text: "これらは管理体制の不十分さや予算配分の偏りが原因であり、土壌管理も含めた持続可能な維持計画が不可欠である。"
         },
         {
           id: "s2-4", // 欠落①
@@ -153,7 +153,7 @@ export const minutesDataDefault: MinutesData = {
         },
         {
           id: "s3-3",
-          text: "SNS や動画配信サービスを活用した新しい広報手法の導入も検討され、若い世代への効果的なアプローチが模索された。"
+          text: "植栽活動への関心を高めるため、SNS や動画配信サービスを活用した新しい広報手法の導入も検討された。"
         },
         {
           id: "s3-4", // 欠落②
@@ -194,7 +194,7 @@ export const minutesDataDefault: MinutesData = {
         },
         {
           id: "s4-3",
-          text: "定期的な点検や最新の設備導入が必要であり、管理体制の見直しが急務となっている。"
+          text: "街路樹の定期的な点検や最新の設備導入が必要であり、管理体制の見直しが急務となっている。"
         },
         {
           id: "s4-4", // 欠落③
@@ -264,7 +264,7 @@ export const minutesDataDefault: MinutesData = {
         },
         {
           id: "s6-3",
-          text: "SNS、自治体サイト、広報紙など多様な手段がある一方、住民のリテラシーや年齢層ごとに情報取得手段が異なっているため、広報の統一性が課題となった。"
+          text: "情報発信の仕組みを構築する上で、SNS、自治体サイト、広報紙など多様な手段があるが、住民のリテラシーや年齢層ごとに情報取得手段が異なっている。"
         },
         {
           id: "s6-4", // 欠落⑤
@@ -326,7 +326,7 @@ export const minutesDataDefault: MinutesData = {
         },
         {
           id: "s8-3",
-          text: "また、植栽に使用する土壌改良材や肥料、散水設備などの在庫管理の仕組みも改善が必要とされた。"
+          text: "また、生態系保全の観点から植栽に使用する土壌改良材や肥料、散水設備などの在庫管理の仕組みも改善が必要とされた。"
         },
         {
           id: "s8-4", // 欠落⑦
@@ -463,31 +463,38 @@ export const minutesDataDefault: MinutesData = {
   typos: [
     {
       id: "typo-1",
-      sectionIndex: 5,
-      sentenceIndex: 1,
-      typo: "改膳",
-      correct: "改善"
+      sectionIndex: 2,
+      sentenceIndex: 2,
+      typo: "度壌",
+      correct: "土壌"
     },
     {
       id: "typo-2",
-      sectionIndex: 7,
-      sentenceIndex: 1,
-      typo: "具対的",
-      correct: "具体的"
+      sectionIndex: 3,
+      sentenceIndex: 2,
+      typo: "植菜",
+      correct: "植栽"
     },
     {
       id: "typo-3",
-      sectionIndex: 8,
-      sentenceIndex: 1,
-      typo: "課鯛",
-      correct: "課題"
+      sectionIndex: 4,
+      sentenceIndex: 2,
+      typo: "街露樹",
+      correct: "街路樹"
     },
     {
       id: "typo-4",
-      sectionIndex: 9,
-      sentenceIndex: 1,
-      typo: "選抧",
-      correct: "選択"
+      sectionIndex: 6,
+      sentenceIndex: 2,
+      typo: "光築",
+      correct: "構築"
+    },
+    {
+      id: "typo-5",
+      sectionIndex: 8,
+      sentenceIndex: 2,
+      typo: "保禅",
+      correct: "保全"
     }
   ]
 };

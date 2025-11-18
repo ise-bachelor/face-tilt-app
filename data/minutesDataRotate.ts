@@ -125,7 +125,7 @@ export const minutesDataRotate: MinutesData = {
         },
         {
           id: "s3-3",
-          text: "そこで、学校や地域行事と連携した新しい体験型ワークショップを導入し、自然災害のシミュレーション体験を実施する案が提示された。"
+          text: "そこで、学校や地域行事と連携した新しい体験型の防災訓練ワークショップを導入し、自然災害のシミュレーション体験を実施する案が提示された。"
         },
         {
           id: "s3-4", // 欠落②
@@ -216,7 +216,7 @@ export const minutesDataRotate: MinutesData = {
         },
         {
           id: "s6-3",
-          text: "自治体としては公式情報を一元化し、住民に確実に届ける仕組みを構築する必要がある。"
+          text: "自治体としては公式の情報網を整備して情報を一元化し、住民に確実に届ける仕組みを構築する必要がある。"
         },
         {
           id: "s6-4", // 欠落⑤
@@ -399,38 +399,38 @@ export const minutesDataRotate: MinutesData = {
   typos: [
     {
       id: "typo-1",
-      sectionIndex: 1,
-      sentenceIndex: 0,
-      typo: "防灉",
-      correct: "防災"
+      sectionIndex: 2,
+      sentenceIndex: 2,
+      typo: "聞析",
+      correct: "分析"
     },
     {
       id: "typo-2",
-      sectionIndex: 5,
-      sentenceIndex: 1,
-      typo: "改膳",
-      correct: "改善"
+      sectionIndex: 3,
+      sentenceIndex: 2,
+      typo: "訓煉",
+      correct: "訓練"
     },
     {
       id: "typo-3",
-      sectionIndex: 7,
-      sentenceIndex: 1,
-      typo: "具対的",
-      correct: "具体的"
+      sectionIndex: 4,
+      sentenceIndex: 2,
+      typo: "管埋",
+      correct: "管理"
     },
     {
       id: "typo-4",
-      sectionIndex: 8,
-      sentenceIndex: 1,
-      typo: "課鯛",
-      correct: "課題"
+      sectionIndex: 6,
+      sentenceIndex: 2,
+      typo: "情堀網",
+      correct: "情報網"
     },
     {
       id: "typo-5",
-      sectionIndex: 9,
-      sentenceIndex: 1,
-      typo: "選抧",
-      correct: "選択"
+      sectionIndex: 8,
+      sentenceIndex: 2,
+      typo: "設俉",
+      correct: "設備"
     }
   ]
 };

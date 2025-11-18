@@ -4,6 +4,7 @@ import { MinutesInputLog, MinutesTypoLog, ExperimentCondition } from '../types';
 
 interface MinutesEditingTaskProps {
   condition?: ExperimentCondition;
+  participantId?: string;
   onComplete: (inputLogs: MinutesInputLog[], typoLogs: MinutesTypoLog[]) => void;
 }
 
@@ -17,9 +18,9 @@ const generateRandomOrder = (): number[] => {
   return indices;
 };
 
-export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ condition, onComplete }) => {
-  // 条件に応じたデータを取得
-  const minutesData = getMinutesData(condition);
+export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ condition, participantId, onComplete }) => {
+  // 条件と参加者IDに応じたデータを取得
+  const minutesData = getMinutesData(condition, participantId);
   // タスク状態
   const [isPractice, setIsPractice] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); // 0: 練習, 1-8: 本番

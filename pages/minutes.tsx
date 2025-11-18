@@ -200,7 +200,11 @@ const MinutesTaskPage = () => {
         />
       ) : (
         // タスク画面（回転する）
-        <MinutesEditingTask condition={session.condition} onComplete={handleCompleteTask} />
+        <MinutesEditingTask
+          condition={session.condition}
+          participantId={session.participant_id}
+          onComplete={handleCompleteTask}
+        />
       )}
     </div>
   );

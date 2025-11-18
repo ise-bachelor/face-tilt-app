@@ -191,7 +191,6 @@ const containerStyle: React.CSSProperties = {
   justifyContent: 'center',
   minHeight: '100vh',
   backgroundColor: '#f5f5f5',
-  padding: '20px',
 };
 
 const titleStyle: React.CSSProperties = {

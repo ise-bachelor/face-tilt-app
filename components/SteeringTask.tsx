@@ -5,6 +5,9 @@ interface SteeringTaskProps {
   participantId: string;
   tiltCondition: 'baseline' | 'tilt';
   onComplete: (logs: SteeringTrialLog[]) => void;
+  isPractice?: boolean;
+  practiceRound?: number;
+  onPracticeComplete?: () => void;
 }
 
 type WidthCondition = 'easy' | 'medium' | 'hard';
@@ -26,6 +29,9 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
   participantId,
   tiltCondition,
   onComplete,
+  isPractice = false,
+  practiceRound = 0,
+  onPracticeComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -61,7 +67,10 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     return order;
   });
 
-  const currentConfig = TUNNEL_CONFIGS[conditionOrder[currentTrialIndex]];
+  // 練習モードでは常にeasyを使用、本番モードでは条件順序に従う
+  const currentConfig = isPractice
+    ? TUNNEL_CONFIGS[0] // easy
+    : TUNNEL_CONFIGS[conditionOrder[currentTrialIndex]];
   const totalTrials = conditionOrder.length;
 
   // 画面サイズに基づいたトンネルの配置を計算
@@ -264,34 +273,45 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
       // 成功判定（例：エラー時間がMTの20%以下）
       const success = errorTime <= MT * 0.2;
 
-      // ログを記録
-      const log: SteeringTrialLog = {
-        participantId,
-        tiltCondition,
-        trialId: currentTrialIndex,
-        widthCondition: currentConfig.widthCondition,
-        A,
-        W: currentConfig.W,
-        startTime,
-        endTime,
-        MT,
-        errorTime,
-        errorCount,
-        success,
-      };
-
-      const newTrials = [...trials, log];
-      setTrials(newTrials);
       setIsDrawing(false);
 
-      // 次のトライアルへ
-      const nextTrialIndex = currentTrialIndex + 1;
-      if (nextTrialIndex < totalTrials) {
-        setCurrentTrialIndex(nextTrialIndex);
-        // currentConfigが変更されると、useEffectでdrawCanvas()が自動的に呼び出される
+      // 練習モードの場合
+      if (isPractice) {
+        // ログは記録しない
+        // 練習完了をコールバック
+        if (onPracticeComplete) {
+          onPracticeComplete();
+        }
+        drawCanvas();
       } else {
-        // 全トライアル完了
-        onComplete(newTrials);
+        // 本番モード：ログを記録
+        const log: SteeringTrialLog = {
+          participantId,
+          tiltCondition,
+          trialId: currentTrialIndex,
+          widthCondition: currentConfig.widthCondition,
+          A,
+          W: currentConfig.W,
+          startTime,
+          endTime,
+          MT,
+          errorTime,
+          errorCount,
+          success,
+        };
+
+        const newTrials = [...trials, log];
+        setTrials(newTrials);
+
+        // 次のトライアルへ
+        const nextTrialIndex = currentTrialIndex + 1;
+        if (nextTrialIndex < totalTrials) {
+          setCurrentTrialIndex(nextTrialIndex);
+          // currentConfigが変更されると、useEffectでdrawCanvas()が自動的に呼び出される
+        } else {
+          // 全トライアル完了
+          onComplete(newTrials);
+        }
       }
     } else {
       // ゴールに到達せずに終了
@@ -305,8 +325,17 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     <div style={containerWrapperStyle}>
       {/* タスク情報表示 */}
       <div style={taskInfoStyle}>
-        <p>試行: {currentTrialIndex + 1} / {totalTrials}</p>
-        <p>難易度: {currentConfig.widthCondition} (幅: {currentConfig.W}px)</p>
+        {isPractice ? (
+          <>
+            <p style={{ fontWeight: 'bold', color: '#1976d2' }}>練習モード</p>
+            <p>練習回数: {practiceRound + 1} / 3</p>
+          </>
+        ) : (
+          <>
+            <p>試行: {currentTrialIndex + 1} / {totalTrials}</p>
+            <p>難易度: {currentConfig.widthCondition} (幅: {currentConfig.W}px)</p>
+          </>
+        )}
         {isDrawing && (
           <>
             <p>エラー回数: {errorCount}</p>

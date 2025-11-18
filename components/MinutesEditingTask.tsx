@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { minutesData, MissingSentence } from '../data/minutesData';
 import { MinutesInputLog, MinutesTypoLog } from '../types';
 
@@ -37,6 +37,10 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
   // 左画面のハイライト位置への参照
   const highlightRef = useRef<HTMLSpanElement>(null);
 
+  // カーソル位置を保存するためのref
+  const editableSpanRef = useRef<HTMLSpanElement>(null);
+  const cursorPositionRef = useRef<number | null>(null);
+
   // 現在の欠落文を取得
   const getCurrentMissingSentence = (): MissingSentence | null => {
     if (isPractice) {
@@ -59,6 +63,23 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
       });
     }
   }, [isHighlighted, currentMissing]);
+
+  // カーソル位置を復元
+  useLayoutEffect(() => {
+    if (cursorPositionRef.current !== null && editableSpanRef.current) {
+      const span = editableSpanRef.current;
+      const selection = window.getSelection();
+      if (selection && span.firstChild) {
+        const range = document.createRange();
+        const offset = Math.min(cursorPositionRef.current, span.textContent?.length || 0);
+        range.setStart(span.firstChild, offset);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      cursorPositionRef.current = null;
+    }
+  }, [missingInputs]);
 
   // 「次の文をハイライト」ボタンハンドラ
   const handleNextHighlight = () => {
@@ -132,6 +153,13 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
 
   // 入力変更ハンドラ
   const handleInputChange = (sentenceId: string, value: string) => {
+    // カーソル位置を保存
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      cursorPositionRef.current = range.startOffset;
+    }
+
     // 初回入力時にタイムスタンプを記録
     if (typingStartTime === 0 && value.length > 0) {
       setTypingStartTime(Date.now());
@@ -219,8 +247,22 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
               <h3 style={sectionTitleStyle}>{section.title}</h3>
               <p
                 style={paragraphStyle}
-                contentEditable={false}
+                contentEditable={true}
                 suppressContentEditableWarning={true}
+                onBeforeInput={(e) => {
+                  // contentEditableなspan以外の入力をブロック
+                  const target = e.target as HTMLElement;
+                  if (target.tagName !== 'SPAN' || !target.getAttribute('contenteditable')) {
+                    e.preventDefault();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // contentEditableなspan以外のキー入力をブロック
+                  const target = e.target as HTMLElement;
+                  if (target.tagName !== 'SPAN' || !target.getAttribute('contenteditable')) {
+                    e.preventDefault();
+                  }
+                }}
               >
                 {section.sentences.map((sentence, sentenceIndex) => {
                   // この文が欠落しているか確認
@@ -237,6 +279,7 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                     return (
                       <span
                         key={sentence.id}
+                        ref={isCurrentEditing ? editableSpanRef : null}
                         contentEditable={isCurrentEditing && !isCompleted}
                         suppressContentEditableWarning={true}
                         onInput={(e) => {
@@ -249,12 +292,6 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                           }
                         }}
                         style={{
-                          backgroundColor: isCompleted ? '#c8e6c9' : (isCurrentEditing ? '#fff9c4' : 'transparent'),
-                          minWidth: isCurrentEditing ? '200px' : 'auto',
-                          display: 'inline-block',
-                          borderBottom: isCurrentEditing ? '2px solid #1976d2' : 'none',
-                          padding: '2px',
-                          borderRadius: '2px',
                           outline: 'none',
                         }}
                       >
@@ -281,11 +318,7 @@ export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComple
                         <span
                           onClick={() => handleTypoClick(typo.id)}
                           style={{
-                            backgroundColor: isFixed ? '#c8e6c9' : 'transparent',
                             cursor: isFixed ? 'default' : 'pointer',
-                            padding: '2px',
-                            borderRadius: '2px',
-                            transition: 'background-color 0.3s',
                           }}
                         >
                           {textToShow}

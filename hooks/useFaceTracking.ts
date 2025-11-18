@@ -45,6 +45,9 @@ export const useFaceTracking = ({
     rotateZ: 0,
   });
 
+  // 基準角度が設定されたかどうかを追跡
+  const baseRotationSetRef = useRef<boolean>(false);
+
   const animationFrameRef = useRef<number>();
   const detectionStartTimeRef = useRef<number>(0);
   const renderTimeRef = useRef<number>(0);
@@ -82,6 +85,12 @@ export const useFaceTracking = ({
             currentRotationRef.current = angles;
 
             if (isStarted) {
+              // タスク開始直後の最初のフレームで基準角度を設定
+              if (!baseRotationSetRef.current) {
+                baseRotationRef.current = { ...angles };
+                baseRotationSetRef.current = true;
+              }
+
               // 頭部姿勢（基準との差分）
               const headPoseDiff: HeadPose = {
                 pitch: angles.rotateX - baseRotationRef.current.rotateX,
@@ -148,7 +157,8 @@ export const useFaceTracking = ({
   };
 
   const handleStart = () => {
-    baseRotationRef.current = { ...currentRotationRef.current };
+    // 基準角度は次のフレームで設定されるため、フラグをリセット
+    baseRotationSetRef.current = false;
     setIsStarted(true);
     resetFilters();
   };
@@ -156,6 +166,7 @@ export const useFaceTracking = ({
   const handleStop = () => {
     setIsStarted(false);
     setRotation({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+    baseRotationSetRef.current = false;
     resetFilters();
   };
 

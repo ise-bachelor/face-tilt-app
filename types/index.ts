@@ -136,6 +136,7 @@ export interface MinutesInputLog {
   T_typing_end: number;
   search_time: number;  // T_typing_start - T_highlight_pressed
   input_time: number;   // T_highlight_pressed(next) - T_typing_start
+  modal_time: number;   // モーダル表示時間
   need_fix: boolean;    // ハイライト押下時に入力が正しくなかったか
   fix_count: number;    // 修正を促された回数
 }

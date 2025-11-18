@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { minutesData, MissingSentence } from '../data/minutesData';
-import { MinutesInputLog, MinutesTypoLog } from '../types';
+import { getMinutesData, MissingSentence } from '../data/minutesData';
+import { MinutesInputLog, MinutesTypoLog, ExperimentCondition } from '../types';
 
 interface MinutesEditingTaskProps {
+  condition?: ExperimentCondition;
+  participantId?: string;
   onComplete: (inputLogs: MinutesInputLog[], typoLogs: MinutesTypoLog[]) => void;
 }
 
@@ -16,7 +18,9 @@ const generateRandomOrder = (): number[] => {
   return indices;
 };
 
-export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ onComplete }) => {
+export const MinutesEditingTask: React.FC<MinutesEditingTaskProps> = ({ condition, participantId, onComplete }) => {
+  // 条件と参加者IDに応じたデータを取得
+  const minutesData = getMinutesData(condition, participantId);
   // タスク状態
   const [isPractice, setIsPractice] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); // 0: 練習, 1-8: 本番

@@ -1,6 +1,21 @@
 import type { Rotation } from '../types';
 
+// 顔の回転と並行移動を含む結果
+export interface FaceAnglesResult {
+  rotation: Rotation;
+  translation: {
+    tx: number;  // 左右位置（正規化、右が正）
+    ty: number;  // 上下位置（正規化、下が正）
+    tz: number;  // 前後位置（顔サイズで推定、大きい=近い）
+  };
+}
+
 export const calculateFaceAngles = (keypoints: any[]): Rotation => {
+  const result = calculateFaceAnglesWithTranslation(keypoints);
+  return result.rotation;
+};
+
+export const calculateFaceAnglesWithTranslation = (keypoints: any[]): FaceAnglesResult => {
   // 主要な特徴点のインデックス
   const noseTip = keypoints[1];        // 鼻先
   const leftEye = keypoints[33];       // 左目
@@ -26,9 +41,29 @@ export const calculateFaceAngles = (keypoints: any[]): Rotation => {
   );
   const rollAngle = (eyeAngle * 180) / Math.PI; // ラジアンから度に変換
 
+  // 並行移動の計算
+  // Tx: 顔の中心（鼻先）のx位置
+  // MediaPipeの座標は0-1に正規化されているため、0.5を中心として計算
+  const tx = (noseTip.x - 0.5) * 100; // 中心からのずれをパーセンテージで表現
+
+  // Ty: 顔の中心（鼻先）のy位置
+  const ty = (noseTip.y - 0.5) * 100; // 中心からのずれをパーセンテージで表現
+
+  // Tz: 顔のサイズ（額からあごまでの距離）で前後を推定
+  // 基準サイズを0.3（画面の30%）として、それより大きければ近い、小さければ遠い
+  const baseFaceHeight = 0.3;
+  const tz = (faceHeight - baseFaceHeight) * 100; // 基準からの差をパーセンテージで表現
+
   return {
-    rotateY: yawAngle,      // 左右の向き
-    rotateX: -pitchAngle,   // 上下の向き（マイナスで反転）
-    rotateZ: -rollAngle     // 傾き（マイナスで反転）
+    rotation: {
+      rotateY: yawAngle,      // 左右の向き
+      rotateX: -pitchAngle,   // 上下の向き（マイナスで反転）
+      rotateZ: -rollAngle     // 傾き（マイナスで反転）
+    },
+    translation: {
+      tx,  // 右方向が正
+      ty,  // 下方向が正
+      tz   // 前方向（近づく）が正
+    }
   };
 };

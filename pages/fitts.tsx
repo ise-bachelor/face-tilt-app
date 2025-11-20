@@ -42,7 +42,7 @@ const FittsTaskPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector(true);
-  const { rotation, headPose, screenRotation, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, rawScreenRotation, screenRotation, handleStart } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
@@ -68,6 +68,8 @@ const FittsTaskPage = () => {
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
     headPose,
+    headTranslation,
+    rawScreenRotation,
     screenRotation,
     isRecording,
   });
@@ -135,7 +137,7 @@ const FittsTaskPage = () => {
     if (!isPractice) {
       const log: FittsTrialLog = {
         participantId: session.participant_id,
-        tiltCondition: session.condition === 'rotate' ? 'tilt' : 'baseline',
+        tiltCondition: (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline',
         trialId: totalTrials,
         levelId: currentLevel.id,
         D: currentLevel.R * 2, // 直径 = 半径 × 2

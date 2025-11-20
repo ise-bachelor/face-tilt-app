@@ -21,7 +21,7 @@ const SteeringTaskPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector(true);
-  const { rotation, headPose, screenRotation, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, rawScreenRotation, screenRotation, handleStart } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
@@ -42,6 +42,8 @@ const SteeringTaskPage = () => {
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
     headPose,
+    headTranslation,
+    rawScreenRotation,
     screenRotation,
     isRecording,
   });
@@ -185,7 +187,7 @@ const SteeringTaskPage = () => {
     return <div>読み込み中...</div>;
   }
 
-  const tiltCondition = session.condition === 'rotate' ? 'tilt' : 'baseline';
+  const tiltCondition = (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline';
 
   // タスク完了画面（回転しない）
   if (isTaskCompleted) {

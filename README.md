@@ -1,31 +1,64 @@
-# 実験用 Web アプリケーション v1.4
+# 実験用 Web アプリケーション v2.0
 
-頭部姿勢（Head Pitch/Yaw/Roll）に応じて画面を回転させながら3種類のタスクを実行し、その操作性・負荷・パフォーマンスを評価するための Web 実験システムです。
+頭部姿勢（回転・並行移動）に応じて画面を回転させながら3種類のタスクを実行し、その操作性・負荷・パフォーマンスを評価するための Web 実験システムです。
 
 ## 実施タスク
 
-1. **議事録作成タスク（Typing）**
+1. **議事録作成タスク（Minutes）**
    - 会議音声を聞きながら議事録を作成
 
 2. **フィッツの法則タスク（Fitts）**
    - 円周上に並んだターゲットを交互にクリック
+   - ISO 9241-411準拠
 
 3. **ステアリングの法則タスク（Steering）**
    - トンネル内をマウスでなぞってゴールまで進む
 
 ## 実験条件
 
-- **Rotate条件**: 画面が頭部姿勢に応じてリアルタイムに回転
-- **Default条件**: 画面は一切回転しない（Screen_Pitch/Yaw/Roll = 0固定）
+- **Rotate1条件**: 画面が頭部姿勢に応じてリアルタイムに回転
+- **Rotate2条件**: Rotate1の2倍の回転量で画面が回転
+- **Default条件**: 画面は一切回転しない（固定）
 
-## 機能
+## 頭部追跡と画面回転
 
-- 📹 Webカメラから顔の特徴点を検出（MediaPipe Face Mesh）
-- 🔄 顔の動きに連動して画面が3D回転（Rotate条件）
-- 📊 姿勢ログ記録（4Hz、250ms間隔）
-- 🎥 Webカメラ録画 + 画面録画（同時記録）
-- 💾 データ自動ダウンロード（CSV、WebM、TXT形式）
-- 🎯 3種類の実験タスク（Typing、Fitts、Steering）
+### 頭部データ
+
+頭部の動きは以下の6軸で追跡されます：
+
+**回転（Rotation）**
+- **Pitch**: 上下の傾き（うなずき）
+- **Yaw**: 左右の回転（首振り）
+- **Roll**: 傾き（首かしげ）
+
+**並行移動（Translation）**
+- **Tx**: 左右への移動
+- **Ty**: 上下への移動
+- **Tz**: 前後への移動（画面への近づき/離れ）
+
+### 画面回転ロジック
+
+| 頭部の動き | 画面回転への影響 |
+|-----------|----------------|
+| Pitch (上下回転) | rotateX に反映 |
+| Yaw (左右回転) | rotateY に反映 |
+| Roll (傾き) | rotateZ に反映 |
+| Ty (上下移動) | rotateX に反映 |
+| Tx (左右移動) | rotateY に反映 |
+| Tz (前後移動) | rotateX に反映 |
+
+### 感度係数
+
+```typescript
+ROTATION_SENSITIVITY = 1.0;           // 頭部回転の感度係数
+TRANSLATION_SENSITIVITY_TX = 0.0025;   // 左右移動の感度係数
+TRANSLATION_SENSITIVITY_TY = 0.001;   // 上下移動の感度係数
+TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
+```
+
+### 回転制限
+
+画面回転は各軸 ±60度 に制限されます。
 
 ## 技術スタック
 
@@ -33,7 +66,7 @@
 - **TensorFlow.js 4.x** + MediaPipe Face Landmarks Detection
 - **MediaRecorder API**: Webカメラ・画面録画
 - **CSS 3D Transforms**: 画面回転表現
-- **Kalman Filter**: 画面振動軽減
+- **Kalman Filter**: 画面振動軽減（応答性重視設定）
 
 ## セットアップ
 
@@ -46,8 +79,6 @@ npm install
 ### 2. 音声ファイルの準備（議事録タスク用）
 
 議事録作成タスクで使用する音声ファイルを `public/sample-audio.mp3` に配置してください。
-
-音声ファイルがない場合、議事録タスクは動作しますが音声は再生されません。
 
 ### 3. 開発サーバーの起動
 
@@ -63,34 +94,33 @@ npm run dev
 
 ## 使用方法
 
-### 1. ホーム画面で設定
+### 1. 同意フォーム
 
-- **参加者ID**: 実験参加者の識別ID（例: P001）
-- **実験条件**: Rotate（画面回転）または Default（画面固定）
-- **タスク選択**: Typing / Fitts / Steering
+- 参加者ID、年齢、性別、利き手を入力
+- 映像公開への同意を選択
+- 送信後、同意情報がCSVでダウンロードされます
 
-### 2. タスク開始
+### 2. 実験設定
+
+- **実験条件**: Rotate1 / Rotate2 / Default
+- **タスク選択**: Minutes / Fitts / Steering
+
+### 3. タスク開始
 
 「タスク開始」ボタンを押すと、以下が同時に開始されます：
 
 - 姿勢ログ記録（4Hz）
 - Webカメラ録画
-- 画面録画
 - 画面回転（Rotate条件のみ）
-
-### 3. タスク実施
-
-各タスクの指示に従って操作します。
 
 ### 4. タスク完了・データダウンロード
 
-タスク終了条件を達成すると、以下のデータが自動ダウンロードされます：
+タスク終了時に以下のデータが自動ダウンロードされます：
 
-- **姿勢ログ（CSV）**: Head_Pitch/Yaw/Roll、Screen_Pitch/Yaw/Roll
-- **タスク固有ログ（CSV）**: クリックログ（Fitts）、軌跡ログ（Steering）
-- **議事録テキスト（TXT）**: 入力テキスト（Typing）
-- **Webカメラ映像（WebM）**: 参加者の顔映像
-- **画面録画（WebM）**: タスク実行中の画面
+- 姿勢ログ（CSV）
+- タスク固有ログ（CSV）
+- 議事録テキスト（TXT）※議事録タスクのみ
+- Webカメラ映像（WebM）
 
 ## データ形式
 
@@ -100,56 +130,78 @@ npm run dev
 |--------|------|
 | timestamp | ミリ秒精度の時刻 |
 | participant_id | 参加者ID |
-| condition | rotate / default |
-| task_name | typing / fitts / steering |
-| Head_Pitch/Yaw/Roll | 基準姿勢との差分 |
-| Screen_Pitch/Yaw/Roll | 実際の画面回転値 |
+| condition | rotate1 / rotate2 / default |
+| task_name | minutes / fitts / steering |
+| Head_Pitch | 頭部Pitch（基準との差分） |
+| Head_Yaw | 頭部Yaw（基準との差分） |
+| Head_Roll | 頭部Roll（基準との差分） |
+| Head_Tx | 頭部左右移動（基準との差分） |
+| Head_Ty | 頭部上下移動（基準との差分） |
+| Head_Tz | 頭部前後移動（基準との差分） |
+| Screen_Pitch_Raw | 画面Pitch（フィルタ前） |
+| Screen_Yaw_Raw | 画面Yaw（フィルタ前） |
+| Screen_Roll_Raw | 画面Roll（フィルタ前） |
+| Screen_Pitch | 画面Pitch（フィルタ後） |
+| Screen_Yaw | 画面Yaw（フィルタ後） |
+| Screen_Roll | 画面Roll（フィルタ後） |
 | audio_current_time | 音声再生位置（議事録タスクのみ） |
 | audio_is_playing | 音声再生状態（議事録タスクのみ） |
 
-### フィッツタスクログ（clicks_log.csv）
+### フィッツタスクログ（fitts_trials.csv）
 
 | カラム | 説明 |
 |--------|------|
-| timestamp | クリック時刻 |
-| trial_index | トライアル番号 |
-| target_size | ターゲットサイズ（px） |
-| target_distance | ターゲット間距離（px） |
-| click_time | クリック所要時間（ms） |
-| is_practice | 練習モードか |
+| participantId | 参加者ID |
+| tiltCondition | tilt / baseline |
+| trialId | トライアル番号 |
+| levelId | 難易度 (low/mid/high) |
+| D | ターゲット間距離（px） |
+| W | ターゲット幅（px） |
+| startTime | 開始時刻 |
+| endTime | 終了時刻 |
+| MT | 移動時間（ms） |
+| targetIndex | 正解ターゲット番号 |
+| clickedIndex | クリックしたターゲット番号 |
+| isError | エラーか |
 
-### ステアリングタスクログ（trajectory_log.csv）
+### ステアリングタスクログ（steering_trials.csv）
 
 | カラム | 説明 |
 |--------|------|
-| timestamp | 記録時刻 |
-| trial_index | トライアル番号 |
-| tunnel_width | トンネル幅（px） |
-| tunnel_length | トンネル長さ（px） |
-| x, y | マウス座標 |
-| is_inside_tunnel | トンネル内か |
-| is_practice | 練習モードか |
+| participantId | 参加者ID |
+| tiltCondition | tilt / baseline |
+| trialId | トライアル番号 |
+| widthCondition | 難易度 (easy/medium/hard) |
+| A | トンネル長さ（px） |
+| W | トンネル幅（px） |
+| startTime | 開始時刻 |
+| endTime | 終了時刻 |
+| MT | 移動時間（ms） |
+| errorTime | エラー時間（ms） |
+| errorCount | エラー回数 |
+| success | 成功したか |
 
 ## タスク詳細
 
-### 議事録作成タスク（Typing）
+### 議事録作成タスク（Minutes）
 
-- 会議音声を聞きながら議事録を自由記述
-- 音声の巻き戻し・一時停止・シーク可能
-- 音声終了後「タスク完了」ボタンを押す
+- 会議音声を聞きながら欠落文を入力
+- 音声の再生・一時停止・シーク可能
+- 全ての欠落文を入力すると完了
 
 ### フィッツの法則タスク（Fitts）
 
-- ターゲットサイズ: 16px / 32px / 64px
-- 距離: 128px / 256px / 512px
-- 練習1回 + 本番39クリック × 条件数
+- 3難易度レベル × 各26試行 = 78試行
+- 難易度: low (R=150, W=80), mid (R=300, W=40), high (R=450, W=20)
+- 練習3回 + 本番
+- CUD準拠配色
 
 ### ステアリングの法則タスク（Steering）
 
-- トンネル幅: 15px / 31px / 63px
-- トンネル長さ: 100px / 200px / 400px
-- 9パターン（3×3）を実施
-- 練習1回 + 本番1セット
+- 3幅条件 × 10試行 = 30試行
+- 幅: easy (200px), medium (100px), hard (50px)
+- 長さ: 800px
+- 練習3回 + 本番
 
 ## ブラウザ互換性
 
@@ -165,10 +217,10 @@ npm run dev
 - HTTPSまたはlocalhostでアクセスしているか確認
 - 他のアプリがカメラを使用していないか確認
 
-### 録画が開始できない
+### 画面回転がカクカクする
 
-- 画面共有の許可を確認
-- ブラウザが MediaRecorder API をサポートしているか確認
+- ブラウザのハードウェアアクセラレーションを有効化
+- 他のタブやアプリを閉じてリソースを確保
 
 ### データがダウンロードされない
 
@@ -183,24 +235,37 @@ npm run dev
 face-tilt-app/
 ├── components/          # Reactコンポーネント
 ├── contexts/            # React Context（カメラ、実験セッション）
-├── hooks/               # カスタムフック（顔追跡、姿勢ログ、録画）
+├── data/                # 議事録タスクデータ
+├── hooks/               # カスタムフック
+│   ├── useFaceTracking.ts   # 顔追跡・画面回転ロジック
+│   ├── useFaceDetector.ts   # 顔検出モデル管理
+│   ├── usePostureLog.ts     # 姿勢ログ記録
+│   └── useRecording.ts      # 録画管理
 ├── pages/               # Next.jsページ
-│   ├── index.tsx       # ホーム画面
-│   ├── typing.tsx      # 議事録タスク
+│   ├── index.tsx       # ホーム画面・同意フォーム
+│   ├── minutes.tsx     # 議事録タスク
 │   ├── fitts.tsx       # フィッツタスク
 │   └── steering.tsx    # ステアリングタスク
 ├── types/               # TypeScript型定義
 ├── utils/               # ユーティリティ関数
+│   ├── faceAngles.ts   # 顔角度・位置計算
+│   ├── KalmanFilter.ts # カルマンフィルタ
+│   └── downloadUtils.ts # ダウンロード処理
 └── public/              # 静的ファイル
 ```
 
 ### 主要な実装
 
-- **useFaceTracking**: 顔追跡と画面回転ロジック（Kalman Filter適用）
-- **usePostureLog**: 4Hz姿勢ログ記録
-- **useRecording**: Webカメラ + 画面録画
+- **useFaceTracking**: 顔追跡・画面回転計算（カルマンフィルタ、60度制限）
+- **calculateFaceAnglesWithTranslation**: 顔特徴点から回転・並行移動を計算
+- **usePostureLog**: 4Hz姿勢ログ記録（フィルタ前後の値を記録）
+- **useRecording**: Webカメラ録画
 - **CameraContext**: カメラストリーム管理
 - **ExperimentContext**: 実験セッション情報管理
+
+### パフォーマンス
+
+コンソールに `特徴点取得〜画面傾き計算: XXms` と表示され、処理時間を確認できます。
 
 ## ライセンス
 

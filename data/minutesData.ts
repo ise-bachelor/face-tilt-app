@@ -20,8 +20,8 @@ export const getMinutesData = (condition?: ExperimentCondition, participantId?: 
     const participantNumber = extractParticipantNumber(participantId);
     const isEven = participantNumber % 2 === 0;
 
-    if (condition === 'rotate') {
-      // rotate条件: 偶数ID → 防災、奇数ID → 緑化
+    if (condition === 'rotate1' || condition === 'rotate2') {
+      // rotate1/rotate2条件: 偶数ID → 防災、奇数ID → 緑化
       return isEven ? minutesDataRotate : minutesDataDefault;
     } else {
       // default条件: 偶数ID → 緑化、奇数ID → 防災

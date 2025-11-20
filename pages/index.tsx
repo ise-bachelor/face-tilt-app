@@ -37,7 +37,7 @@ const Home: NextPage = () => {
   const { isPermissionGranted, isLoading, error, requestPermission } = useCamera();
   const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
-  const [condition, setCondition] = useState<ExperimentCondition>('rotate');
+  const [condition, setCondition] = useState<ExperimentCondition>('rotate1');
   const [taskName, setTaskName] = useState<TaskType>('minutes');
 
   // 同意フォームが完了したかどうか
@@ -115,11 +115,20 @@ const Home: NextPage = () => {
               <label style={radioLabelStyle}>
                 <input
                   type="radio"
-                  value="rotate"
-                  checked={condition === 'rotate'}
+                  value="rotate1"
+                  checked={condition === 'rotate1'}
                   onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
                 />
-                <span style={radioTextStyle}>Rotate（画面が回転）</span>
+                <span style={radioTextStyle}>Rotate1（画面が回転）</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="rotate2"
+                  checked={condition === 'rotate2'}
+                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                />
+                <span style={radioTextStyle}>Rotate2（2倍回転）</span>
               </label>
               <label style={radioLabelStyle}>
                 <input

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { PostureLogEntry, HeadPose, ScreenRotation, ExperimentSession } from '../types';
+import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation, ExperimentSession } from '../types';
 
 interface UsePostureLogProps {
   session: ExperimentSession | null;
   headPose: HeadPose;
+  headTranslation: HeadTranslation;
+  rawScreenRotation: ScreenRotation;
   screenRotation: ScreenRotation;
   audioCurrentTime?: number;
   audioIsPlaying?: boolean;
@@ -13,6 +15,8 @@ interface UsePostureLogProps {
 export const usePostureLog = ({
   session,
   headPose,
+  headTranslation,
+  rawScreenRotation,
   screenRotation,
   audioCurrentTime,
   audioIsPlaying,
@@ -30,9 +34,19 @@ export const usePostureLog = ({
           participant_id: session.participant_id,
           condition: session.condition,
           task_name: session.task_name,
+          // 頭部回転（基準との差分）
           Head_Pitch: headPose.pitch,
           Head_Yaw: headPose.yaw,
           Head_Roll: headPose.roll,
+          // 頭部並行移動（基準との差分）
+          Head_Tx: headTranslation.tx,
+          Head_Ty: headTranslation.ty,
+          Head_Tz: headTranslation.tz,
+          // 画面回転（カルマンフィルタ前）
+          Screen_Pitch_Raw: rawScreenRotation.pitch,
+          Screen_Yaw_Raw: rawScreenRotation.yaw,
+          Screen_Roll_Raw: rawScreenRotation.roll,
+          // 画面回転（カルマンフィルタ後）
           Screen_Pitch: screenRotation.pitch,
           Screen_Yaw: screenRotation.yaw,
           Screen_Roll: screenRotation.roll,
@@ -49,7 +63,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, screenRotation, audioCurrentTime, audioIsPlaying]);
+  }, [isRecording, session, headPose, headTranslation, rawScreenRotation, screenRotation, audioCurrentTime, audioIsPlaying]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -69,6 +83,12 @@ export const usePostureLog = ({
       'Head_Pitch',
       'Head_Yaw',
       'Head_Roll',
+      'Head_Tx',
+      'Head_Ty',
+      'Head_Tz',
+      'Screen_Pitch_Raw',
+      'Screen_Yaw_Raw',
+      'Screen_Roll_Raw',
       'Screen_Pitch',
       'Screen_Yaw',
       'Screen_Roll',
@@ -86,6 +106,12 @@ export const usePostureLog = ({
         log.Head_Pitch.toFixed(4),
         log.Head_Yaw.toFixed(4),
         log.Head_Roll.toFixed(4),
+        log.Head_Tx.toFixed(4),
+        log.Head_Ty.toFixed(4),
+        log.Head_Tz.toFixed(4),
+        log.Screen_Pitch_Raw.toFixed(4),
+        log.Screen_Yaw_Raw.toFixed(4),
+        log.Screen_Roll_Raw.toFixed(4),
         log.Screen_Pitch.toFixed(4),
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),

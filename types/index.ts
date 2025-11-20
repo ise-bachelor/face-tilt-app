@@ -8,7 +8,7 @@ export type Rotation = {
 };
 
 // 実験条件
-export type ExperimentCondition = 'rotate' | 'default';
+export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 
 // タスク種類
 export type TaskType = 'fitts' | 'steering' | 'minutes';
@@ -18,6 +18,13 @@ export interface HeadPose {
   pitch: number;
   yaw: number;
   roll: number;
+}
+
+// 頭部並行移動（基準との差分）
+export interface HeadTranslation {
+  tx: number;  // 左右移動（右が正）
+  ty: number;  // 上下移動（下が正）
+  tz: number;  // 前後移動（前が正、画面に近づく）
 }
 
 // 画面回転（実際の回転値）
@@ -33,9 +40,19 @@ export interface PostureLogEntry {
   participant_id: string;
   condition: ExperimentCondition;
   task_name: TaskType;
+  // 頭部回転（基準との差分）
   Head_Pitch: number;
   Head_Yaw: number;
   Head_Roll: number;
+  // 頭部並行移動（基準との差分）
+  Head_Tx: number;
+  Head_Ty: number;
+  Head_Tz: number;
+  // 画面回転（カルマンフィルタ前）
+  Screen_Pitch_Raw: number;
+  Screen_Yaw_Raw: number;
+  Screen_Roll_Raw: number;
+  // 画面回転（カルマンフィルタ後）
   Screen_Pitch: number;
   Screen_Yaw: number;
   Screen_Roll: number;

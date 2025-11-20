@@ -187,7 +187,7 @@ const SteeringTaskPage = () => {
     return <div>読み込み中...</div>;
   }
 
-  const tiltCondition = session.condition === 'rotate' ? 'tilt' : 'baseline';
+  const tiltCondition = (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline';
 
   // タスク完了画面（回転しない）
   if (isTaskCompleted) {

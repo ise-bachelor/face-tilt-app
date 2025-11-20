@@ -137,7 +137,7 @@ const FittsTaskPage = () => {
     if (!isPractice) {
       const log: FittsTrialLog = {
         participantId: session.participant_id,
-        tiltCondition: session.condition === 'rotate' ? 'tilt' : 'baseline',
+        tiltCondition: (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline',
         trialId: totalTrials,
         levelId: currentLevel.id,
         D: currentLevel.R * 2, // 直径 = 半径 × 2

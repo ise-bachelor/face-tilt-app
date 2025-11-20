@@ -11,8 +11,10 @@ type UseFaceTrackingArgs = {
 };
 
 // 感度係数
-const ROTATION_SENSITIVITY = 2.0;      // 頭部回転の感度係数
-const TRANSLATION_SENSITIVITY = 0.005; // 並行移動の感度係数
+const ROTATION_SENSITIVITY = 2.0;           // 頭部回転の感度係数
+const TRANSLATION_SENSITIVITY_TX = 0.005;   // 左右移動の感度係数
+const TRANSLATION_SENSITIVITY_TY = 0.005;   // 上下移動の感度係数
+const TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
 
 // 画面回転の最大角度
 const MAX_ROTATION_ANGLE = 60;
@@ -26,7 +28,7 @@ export const useFaceTracking = ({
   videoRef,
   detector,
   isModelLoaded,
-  condition = 'rotate',
+  condition = 'rotate1',
 }: UseFaceTrackingArgs) => {
   const [rotation, setRotation] = useState<Rotation>({
     rotateX: 0,
@@ -184,23 +186,26 @@ export const useFaceTracking = ({
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
               let rawRotation: Rotation;
-              if (condition === 'rotate') {
+              if (condition === 'rotate1' || condition === 'rotate2') {
                 // Rotate条件: 画面が回転する
                 // 並行移動による回転への寄与を計算
                 // Tx (左右) → Yaw (rotateY): 右(+)→rotateY(+), 左(-)→rotateY(-)
                 // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
                 // Tz (前後) → Pitch (rotateX): 前(+)→rotateX(+), 後(-)→rotateX(-)
 
+                // rotate2は回転量を2倍にする
+                const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
+
                 rawRotation = {
                   // Pitch: 頭部回転 + Ty + Tz による寄与
-                  rotateX: filteredHeadPose.pitch * ROTATION_SENSITIVITY
-                    + filteredHeadTranslation.ty * TRANSLATION_SENSITIVITY
-                    + filteredHeadTranslation.tz * TRANSLATION_SENSITIVITY,
+                  rotateX: (filteredHeadPose.pitch * ROTATION_SENSITIVITY
+                    + filteredHeadTranslation.ty * TRANSLATION_SENSITIVITY_TY
+                    + filteredHeadTranslation.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
                   // Yaw: 頭部回転 + Tx による寄与
-                  rotateY: filteredHeadPose.yaw * ROTATION_SENSITIVITY
-                    + filteredHeadTranslation.tx * TRANSLATION_SENSITIVITY,
+                  rotateY: (filteredHeadPose.yaw * ROTATION_SENSITIVITY
+                    + filteredHeadTranslation.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
                   // Roll: 頭部回転のみ
-                  rotateZ: filteredHeadPose.roll * ROTATION_SENSITIVITY,
+                  rotateZ: (filteredHeadPose.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
                 };
 
                 // 画面回転にカルマンフィルタを適用

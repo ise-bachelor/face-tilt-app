@@ -8,7 +8,7 @@ export type Rotation = {
 };
 
 // 実験条件
-export type ExperimentCondition = 'rotate' | 'default';
+export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 
 // タスク種類
 export type TaskType = 'fitts' | 'steering' | 'minutes';

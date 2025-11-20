@@ -50,10 +50,10 @@
 ### 感度係数
 
 ```typescript
-ROTATION_SENSITIVITY = 2.0       // 頭部回転
-TRANSLATION_SENSITIVITY_TX = 0.005  // 左右移動
-TRANSLATION_SENSITIVITY_TY = 0.005  // 上下移動
-TRANSLATION_SENSITIVITY_TZ = 0.005  // 前後移動
+ROTATION_SENSITIVITY = 1.0;           // 頭部回転の感度係数
+TRANSLATION_SENSITIVITY_TX = 0.0025;   // 左右移動の感度係数
+TRANSLATION_SENSITIVITY_TY = 0.001;   // 上下移動の感度係数
+TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
 ```
 
 ### 回転制限

@@ -11,9 +11,9 @@ type UseFaceTrackingArgs = {
 };
 
 // 感度係数
-const ROTATION_SENSITIVITY = 2.0;           // 頭部回転の感度係数
-const TRANSLATION_SENSITIVITY_TX = 0.005;   // 左右移動の感度係数
-const TRANSLATION_SENSITIVITY_TY = 0.005;   // 上下移動の感度係数
+const ROTATION_SENSITIVITY = 1.0;           // 頭部回転の感度係数
+const TRANSLATION_SENSITIVITY_TX = 0.0025;   // 左右移動の感度係数
+const TRANSLATION_SENSITIVITY_TY = 0.001;   // 上下移動の感度係数
 const TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
 
 // 画面回転の最大角度

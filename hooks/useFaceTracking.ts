@@ -63,19 +63,7 @@ export const useFaceTracking = ({
     rotateZ: 0,
   });
 
-  const currentRotationRef = useRef<Rotation>({
-    rotateX: 0,
-    rotateY: 0,
-    rotateZ: 0,
-  });
-
   const baseTranslationRef = useRef<HeadTranslation>({
-    tx: 0,
-    ty: 0,
-    tz: 0,
-  });
-
-  const currentTranslationRef = useRef<HeadTranslation>({
     tx: 0,
     ty: 0,
     tz: 0,
@@ -119,9 +107,6 @@ export const useFaceTracking = ({
             const faceData = calculateFaceAnglesWithTranslation(face.keypoints);
             const angles = faceData.rotation;
             const translation = faceData.translation;
-
-            currentRotationRef.current = angles;
-            currentTranslationRef.current = translation;
 
             if (isStarted) {
               // タスク開始直後の最初のフレームで基準角度と基準位置を設定

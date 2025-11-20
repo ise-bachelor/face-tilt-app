@@ -42,7 +42,7 @@ const FittsTaskPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector(true);
-  const { rotation, headPose, headTranslation, screenRotation, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, rawScreenRotation, screenRotation, handleStart } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
@@ -69,6 +69,7 @@ const FittsTaskPage = () => {
     session,
     headPose,
     headTranslation,
+    rawScreenRotation,
     screenRotation,
     isRecording,
   });

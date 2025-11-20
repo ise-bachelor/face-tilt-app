@@ -40,12 +40,19 @@ export interface PostureLogEntry {
   participant_id: string;
   condition: ExperimentCondition;
   task_name: TaskType;
+  // 頭部回転（基準との差分）
   Head_Pitch: number;
   Head_Yaw: number;
   Head_Roll: number;
+  // 頭部並行移動（基準との差分）
   Head_Tx: number;
   Head_Ty: number;
   Head_Tz: number;
+  // 画面回転（カルマンフィルタ前）
+  Screen_Pitch_Raw: number;
+  Screen_Yaw_Raw: number;
+  Screen_Roll_Raw: number;
+  // 画面回転（カルマンフィルタ後）
   Screen_Pitch: number;
   Screen_Yaw: number;
   Screen_Roll: number;

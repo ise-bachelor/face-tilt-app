@@ -31,6 +31,11 @@ export const useFaceTracking = ({
     yaw: 0,
     roll: 0,
   });
+  const [rawScreenRotation, setRawScreenRotation] = useState<ScreenRotation>({
+    pitch: 0,
+    yaw: 0,
+    roll: 0,
+  });
   const [headTranslation, setHeadTranslation] = useState<HeadTranslation>({
     tx: 0,
     ty: 0,
@@ -131,6 +136,7 @@ export const useFaceTracking = ({
 
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
+              let rawRotation: Rotation;
               if (condition === 'rotate') {
                 // Rotate条件: 画面が回転する
                 // 並行移動による回転への寄与を計算
@@ -138,9 +144,9 @@ export const useFaceTracking = ({
                 // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
                 // Tz (前後) → Pitch (rotateX): 前(+)→rotateX(+), 後(-)→rotateX(-)
 
-                const translationSensitivity = 0.5; // 並行移動の感度係数
+                const translationSensitivity = 0.005; // 並行移動の感度係数
 
-                const rawRotation: Rotation = {
+                rawRotation = {
                   // Pitch: 頭部回転 + Ty + Tz による寄与
                   // Ty: 下方向(+)が正なので、rotateX(+)に寄与（前かがみ寄り）
                   // Tz: 前方向(+)が正なので、rotateX(+)に寄与（前のめり強調）
@@ -158,25 +164,28 @@ export const useFaceTracking = ({
                 setRotation(finalRotation);
               } else {
                 // Default条件: 画面は回転しない
+                rawRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
                 finalRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
                 setRotation(finalRotation);
               }
 
-              // 画面回転の値を記録
+              // 画面回転の値を記録（カルマンフィルタ前）
+              setRawScreenRotation({
+                pitch: rawRotation.rotateX,
+                yaw: rawRotation.rotateY,
+                roll: rawRotation.rotateZ,
+              });
+
+              // 画面回転の値を記録（カルマンフィルタ後）
               setScreenRotation({
                 pitch: finalRotation.rotateX,
                 yaw: finalRotation.rotateY,
                 roll: finalRotation.rotateZ,
               });
 
-              requestAnimationFrame(() => {
-                renderTimeRef.current = performance.now();
-                const totalTime =
-                  renderTimeRef.current - detectionStartTimeRef.current;
-                console.log(
-                  `特徴点取得〜画面反映: ${totalTime.toFixed(2)}ms`
-                );
-              });
+              // パフォーマンス計測（同期処理に変更）
+              const totalTime = performance.now() - detectionStartTimeRef.current;
+              console.log(`特徴点取得〜画面反映: ${totalTime.toFixed(2)}ms`);
             }
           }
         } catch (error) {
@@ -221,6 +230,7 @@ export const useFaceTracking = ({
     rotation,
     headPose,
     headTranslation,
+    rawScreenRotation,
     screenRotation,
     isStarted,
     handleStart,

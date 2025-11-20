@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FaceLandmarksDetector, Rotation, ExperimentCondition, HeadPose, ScreenRotation } from '../types';
+import type { FaceLandmarksDetector, Rotation, ExperimentCondition, HeadPose, ScreenRotation, HeadTranslation } from '../types';
 import { KalmanFilter } from '../utils/KalmanFilter';
-import { calculateFaceAngles } from '../utils/faceAngles';
+import { calculateFaceAnglesWithTranslation } from '../utils/faceAngles';
 
 type UseFaceTrackingArgs = {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -31,6 +31,11 @@ export const useFaceTracking = ({
     yaw: 0,
     roll: 0,
   });
+  const [headTranslation, setHeadTranslation] = useState<HeadTranslation>({
+    tx: 0,
+    ty: 0,
+    tz: 0,
+  });
   const [isStarted, setIsStarted] = useState(false);
 
   const baseRotationRef = useRef<Rotation>({
@@ -43,6 +48,18 @@ export const useFaceTracking = ({
     rotateX: 0,
     rotateY: 0,
     rotateZ: 0,
+  });
+
+  const baseTranslationRef = useRef<HeadTranslation>({
+    tx: 0,
+    ty: 0,
+    tz: 0,
+  });
+
+  const currentTranslationRef = useRef<HeadTranslation>({
+    tx: 0,
+    ty: 0,
+    tz: 0,
   });
 
   // 基準角度が設定されたかどうかを追跡
@@ -81,13 +98,18 @@ export const useFaceTracking = ({
 
           if (faces.length > 0) {
             const face = faces[0];
-            const angles = calculateFaceAngles(face.keypoints);
+            const faceData = calculateFaceAnglesWithTranslation(face.keypoints);
+            const angles = faceData.rotation;
+            const translation = faceData.translation;
+
             currentRotationRef.current = angles;
+            currentTranslationRef.current = translation;
 
             if (isStarted) {
-              // タスク開始直後の最初のフレームで基準角度を設定
+              // タスク開始直後の最初のフレームで基準角度と基準位置を設定
               if (!baseRotationSetRef.current) {
                 baseRotationRef.current = { ...angles };
+                baseTranslationRef.current = { ...translation };
                 baseRotationSetRef.current = true;
               }
 
@@ -99,13 +121,37 @@ export const useFaceTracking = ({
               };
               setHeadPose(headPoseDiff);
 
+              // 頭部並行移動（基準との差分）
+              const headTranslationDiff: HeadTranslation = {
+                tx: translation.tx - baseTranslationRef.current.tx,
+                ty: translation.ty - baseTranslationRef.current.ty,
+                tz: translation.tz - baseTranslationRef.current.tz,
+              };
+              setHeadTranslation(headTranslationDiff);
+
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
               if (condition === 'rotate') {
-                // Rotate条件: 画面が回転する（既存ロジック）
+                // Rotate条件: 画面が回転する
+                // 並行移動による回転への寄与を計算
+                // Tx (左右) → Yaw (rotateY): 右(+)→rotateY(+), 左(-)→rotateY(-)
+                // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
+                // Tz (前後) → Pitch (rotateX): 前(+)→rotateX(+), 後(-)→rotateX(-)
+
+                const translationSensitivity = 0.5; // 並行移動の感度係数
+
                 const rawRotation: Rotation = {
-                  rotateX: headPoseDiff.pitch * 2,
-                  rotateY: headPoseDiff.yaw * 2,
+                  // Pitch: 頭部回転 + Ty + Tz による寄与
+                  // Ty: 下方向(+)が正なので、rotateX(+)に寄与（前かがみ寄り）
+                  // Tz: 前方向(+)が正なので、rotateX(+)に寄与（前のめり強調）
+                  rotateX: headPoseDiff.pitch * 2
+                    + headTranslationDiff.ty * translationSensitivity
+                    + headTranslationDiff.tz * translationSensitivity,
+                  // Yaw: 頭部回転 + Tx による寄与
+                  // Tx: 右方向(+)が正なので、rotateY(+)に寄与
+                  rotateY: headPoseDiff.yaw * 2
+                    + headTranslationDiff.tx * translationSensitivity,
+                  // Roll: 頭部回転のみ
                   rotateZ: headPoseDiff.roll * 2,
                 };
                 finalRotation = applyKalmanFilter(rawRotation);
@@ -166,6 +212,7 @@ export const useFaceTracking = ({
   const handleStop = () => {
     setIsStarted(false);
     setRotation({ rotateX: 0, rotateY: 0, rotateZ: 0 });
+    setHeadTranslation({ tx: 0, ty: 0, tz: 0 });
     baseRotationSetRef.current = false;
     resetFilters();
   };
@@ -173,6 +220,7 @@ export const useFaceTracking = ({
   return {
     rotation,
     headPose,
+    headTranslation,
     screenRotation,
     isStarted,
     handleStart,

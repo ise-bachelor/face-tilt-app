@@ -20,6 +20,13 @@ export interface HeadPose {
   roll: number;
 }
 
+// 頭部並行移動（基準との差分）
+export interface HeadTranslation {
+  tx: number;  // 左右移動（右が正）
+  ty: number;  // 上下移動（下が正）
+  tz: number;  // 前後移動（前が正、画面に近づく）
+}
+
 // 画面回転（実際の回転値）
 export interface ScreenRotation {
   pitch: number;
@@ -36,6 +43,9 @@ export interface PostureLogEntry {
   Head_Pitch: number;
   Head_Yaw: number;
   Head_Roll: number;
+  Head_Tx: number;
+  Head_Ty: number;
+  Head_Tz: number;
   Screen_Pitch: number;
   Screen_Yaw: number;
   Screen_Roll: number;

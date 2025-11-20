@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { PostureLogEntry, HeadPose, ScreenRotation, ExperimentSession } from '../types';
+import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation, ExperimentSession } from '../types';
 
 interface UsePostureLogProps {
   session: ExperimentSession | null;
   headPose: HeadPose;
+  headTranslation: HeadTranslation;
   screenRotation: ScreenRotation;
   audioCurrentTime?: number;
   audioIsPlaying?: boolean;
@@ -13,6 +14,7 @@ interface UsePostureLogProps {
 export const usePostureLog = ({
   session,
   headPose,
+  headTranslation,
   screenRotation,
   audioCurrentTime,
   audioIsPlaying,
@@ -33,6 +35,9 @@ export const usePostureLog = ({
           Head_Pitch: headPose.pitch,
           Head_Yaw: headPose.yaw,
           Head_Roll: headPose.roll,
+          Head_Tx: headTranslation.tx,
+          Head_Ty: headTranslation.ty,
+          Head_Tz: headTranslation.tz,
           Screen_Pitch: screenRotation.pitch,
           Screen_Yaw: screenRotation.yaw,
           Screen_Roll: screenRotation.roll,
@@ -49,7 +54,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, screenRotation, audioCurrentTime, audioIsPlaying]);
+  }, [isRecording, session, headPose, headTranslation, screenRotation, audioCurrentTime, audioIsPlaying]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -69,6 +74,9 @@ export const usePostureLog = ({
       'Head_Pitch',
       'Head_Yaw',
       'Head_Roll',
+      'Head_Tx',
+      'Head_Ty',
+      'Head_Tz',
       'Screen_Pitch',
       'Screen_Yaw',
       'Screen_Roll',
@@ -86,6 +94,9 @@ export const usePostureLog = ({
         log.Head_Pitch.toFixed(4),
         log.Head_Yaw.toFixed(4),
         log.Head_Roll.toFixed(4),
+        log.Head_Tx.toFixed(4),
+        log.Head_Ty.toFixed(4),
+        log.Head_Tz.toFixed(4),
         log.Screen_Pitch.toFixed(4),
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),

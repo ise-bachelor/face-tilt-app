@@ -21,7 +21,7 @@ const SteeringTaskPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector(true);
-  const { rotation, headPose, screenRotation, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, screenRotation, handleStart } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
@@ -42,6 +42,7 @@ const SteeringTaskPage = () => {
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
     headPose,
+    headTranslation,
     screenRotation,
     isRecording,
   });

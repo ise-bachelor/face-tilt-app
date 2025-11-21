@@ -222,12 +222,11 @@ const passageContainerStyle: React.CSSProperties = {
 };
 
 const passageTextStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '500px',
+  width: '320px',
   fontSize: '16px',
   lineHeight: '2',
   color: '#333',
-  textAlign: 'center',
+  textAlign: 'justify',
   fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif",
 };
 
@@ -239,10 +238,9 @@ const textareaContainerStyle: React.CSSProperties = {
 };
 
 const textareaStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '500px',
+  width: '320px',
   height: '100%',
-  padding: '20px',
+  padding: '0',
   fontSize: '16px',
   lineHeight: '2',
   fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif",

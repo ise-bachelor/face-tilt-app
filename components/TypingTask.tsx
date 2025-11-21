@@ -58,13 +58,14 @@ export const TypingTask: React.FC<TypingTaskProps> = ({
 
   // 完了ボタンのハンドラ
   const handleComplete = () => {
-    if (startTime === null) {
+    if (startTime === null || keyLogs.length === 0) {
       alert('まだ入力が開始されていません。');
       return;
     }
 
-    const endTime = Date.now();
-    const finalTime = endTime - startTime;
+    // 最後のキー入力時刻を取得
+    const lastKeyTime = keyLogs[keyLogs.length - 1].timestamp_ms;
+    const finalTime = lastKeyTime - startTime;
 
     const result: TypingResultLog = {
       participant_id: participantId,
@@ -222,7 +223,7 @@ const passageContainerStyle: React.CSSProperties = {
 };
 
 const passageTextStyle: React.CSSProperties = {
-  width: '320px',
+  width: '560px',
   fontSize: '16px',
   lineHeight: '2',
   color: '#333',
@@ -238,7 +239,7 @@ const textareaContainerStyle: React.CSSProperties = {
 };
 
 const textareaStyle: React.CSSProperties = {
-  width: '320px',
+  width: '560px',
   height: '100%',
   padding: '0',
   fontSize: '16px',

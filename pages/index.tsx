@@ -23,11 +23,10 @@ const taskDescriptions: Record<TaskType, string> = {
 - 練習1回の後、本番9パターンを実施します
   `.trim(),
   minutes: `
-【議事録編集タスク】
-左側のお手本と同じになるように、右側の議事録を編集してください。
-- 欠落している文を8箇所入力します
-- 誤字を5箇所見つけてクリックで修正します
-- 練習1回の後、本番8文を実施します
+【タイピングタスク】
+左側に表示される課題文を見ながら、右側のテキストエリアに同じ文章を入力してください。
+- コピー＆ペーストはできません
+- 正確に入力することを心がけてください
 - 所要時間: 約10分
   `.trim(),
 };
@@ -153,7 +152,7 @@ const Home: NextPage = () => {
                   checked={taskName === 'minutes'}
                   onChange={(e) => setTaskName(e.target.value as TaskType)}
                 />
-                <span style={radioTextStyle}>議事録編集タスク</span>
+                <span style={radioTextStyle}>タイピングタスク</span>
               </label>
               <label style={radioLabelStyle}>
                 <input

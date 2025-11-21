@@ -145,7 +145,7 @@ export interface ExperimentSession {
   participantInfo?: ParticipantInfo;  // 参加者情報を追加
 }
 
-// 議事録編集タスク: 欠落文入力ログ
+// 議事録編集タスク: 欠落文入力ログ（後方互換性のため残す）
 export interface MinutesInputLog {
   sentenceId: string;
   T_highlight_pressed: number;
@@ -158,9 +158,26 @@ export interface MinutesInputLog {
   fix_count: number;    // 修正を促された回数
 }
 
-// 議事録編集タスク: 誤字指摘ログ
+// 議事録編集タスク: 誤字指摘ログ（後方互換性のため残す）
 export interface MinutesTypoLog {
   timestamp: number;
   error_id: string;
   corrected: boolean;
+}
+
+// タイピングタスク: キー入力ログ
+export interface TypingKeyLog {
+  key: string;
+  timestamp_ms: number;
+  is_backspace: boolean;
+}
+
+// タイピングタスク: 結果ログ
+export interface TypingResultLog {
+  participant_id: string;
+  condition: ExperimentCondition;
+  passage_id: string;
+  final_text: string;
+  final_time_ms: number;
+  key_logs: TypingKeyLog[];
 }

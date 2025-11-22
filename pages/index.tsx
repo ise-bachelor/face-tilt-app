@@ -7,29 +7,6 @@ import { ExperimentCondition, TaskType, ParticipantInfo } from '../types';
 import { ConsentForm } from '../components/ConsentForm';
 import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
-const taskDescriptions: Record<TaskType, string> = {
-  fitts: `
-【フィッツの法則タスク】
-円周上に並んだターゲットを交互にクリックしてください。
-- ターゲットサイズ: 16px / 32px / 64px
-- 距離: 128px / 256px / 512px
-- 練習1回の後、本番39クリックを実施します
-  `.trim(),
-  steering: `
-【ステアリングの法則タスク】
-トンネル内をなぞってゴールまで進んでください。
-- トンネル幅: 15px / 31px / 63px
-- トンネル長さ: 100px / 200px / 400px
-- 練習1回の後、本番9パターンを実施します
-  `.trim(),
-  minutes: `
-【タイピングタスク】
-左側に表示される課題文を見ながら、右側のテキストエリアに同じ文章を入力してください。
-- コピー＆ペーストはできません
-- 正確に入力することを心がけてください
-- 所要時間: 約10分
-  `.trim(),
-};
 
 const Home: NextPage = () => {
   const router = useRouter();

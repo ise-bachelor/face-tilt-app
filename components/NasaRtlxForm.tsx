@@ -35,8 +35,8 @@ const scaleItems: ScaleItem[] = [
     key: 'temporalDemand',
     title: 'タイムプレッシャー',
     description: '仕事のペースや課題が発生する頻度のために感じる時間的切迫感はどの程度でしたか．ペースはゆっくりとして余裕があるものでしたか，それとも速くて余裕のないものでしたか',
-    lowLabel: '小さい',
-    highLabel: '大きい'
+    lowLabel: '弱い',
+    highLabel: '強い'
   },
   {
     key: 'performance',
@@ -49,15 +49,15 @@ const scaleItems: ScaleItem[] = [
     key: 'effort',
     title: '努力',
     description: '作業成績のレベルを達成・維持するために，精神的・身体的にどの程度いっしょうけんめいに作業しなければなりませんでしたか',
-    lowLabel: '小さい',
-    highLabel: '大きい'
+    lowLabel: '少ない',
+    highLabel: '多い'
   },
   {
     key: 'frustration',
     title: 'フラストレーション',
     description: '作業中に，不安感，落胆，いらいら，ストレス，悩みをどの程度感じましたか．あるいは逆に，安心感，満足感，充足感，楽しさ，リラックスをどの程度感じましたか',
-    lowLabel: '小さい',
-    highLabel: '大きい'
+    lowLabel: '低い',
+    highLabel: '高い'
   }
 ];
 
@@ -132,7 +132,6 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
         {scaleItems.map((item, index) => (
           <div key={item.key} style={{
             ...scaleContainerStyle,
-            borderBottom: index < scaleItems.length - 1 ? '1px solid #e5e5e5' : 'none'
           }}>
             <div style={scaleRowStyle}>
               <div style={scaleTableContainerStyle}>
@@ -149,10 +148,10 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
                           key={`top-${value}`}
                           onClick={() => handleScaleClick(item.key, value)}
                           style={{
-                            ...topCellStyle,
+                            ...((i % 2 == 0) ? topCellStyleA : topCellStyleB),
                             backgroundColor: values[item.key] === value
-                              ? '#262626'
-                              : (i % 2 === 0 ? '#d4d4d4' : '#a3a3a3'),
+                              ? '#AAAAAA'
+                              : '#FFFFFF',
                           }}
                         />
                       ))}
@@ -165,8 +164,8 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
                           style={{
                             ...bottomCellStyle,
                             backgroundColor: values[item.key] === value
-                              ? '#262626'
-                              : '#737373',
+                              ? '#AAAAAA'
+                              : '#FFFFFF',
                           }}
                         />
                       ))}
@@ -268,42 +267,55 @@ const headingStyle: React.CSSProperties = {
   paddingBottom: '8px',
 };
 
-const topCellStyle: React.CSSProperties = {
-  width: '20px',
-  height: '30px',
+const topCellStyleA: React.CSSProperties = {
+  width: '0.6cm',
+  height: '0.4cm',
   cursor: 'pointer',
-  border: '1px solid #525252',
+  border: '1px solid #000000',
+  borderRight: 'none',
+  borderBottom: 'none',
+  transition: 'background-color 0.1s',
+};
+
+const topCellStyleB: React.CSSProperties = {
+  width: '0.6cm',
+  height: '0.4cm',
+  cursor: 'pointer',
+  border: '1px solid #000000',
+  borderLeft: 'none',
+  borderBottom: 'none',
   transition: 'background-color 0.1s',
 };
 
 const bottomCellStyle: React.CSSProperties = {
-  width: '20px',
-  height: '10px',
+  width: '0.6cm',
+  height: '0.4cm',
   cursor: 'pointer',
-  border: '1px solid #525252',
+  border: '1px solid #000000',
   borderTop: 'none',
   transition: 'background-color 0.1s',
 };
 
 const leftLabelStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#525252',
+  fontSize: '14px',
+  color: '#000000',
   textAlign: 'left',
   paddingTop: '4px',
 };
 
 const rightLabelStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#525252',
+  fontSize: '14px',
+  color: '#000000',
   textAlign: 'right',
   paddingTop: '4px',
 };
 
 const descriptionStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: '#525252',
+  color: '#000000',
   lineHeight: '1.6',
   flex: 1,
+  alignSelf: 'center',
 };
 
 const submitContainerStyle: React.CSSProperties = {
@@ -336,7 +348,7 @@ const disabledButtonStyle: React.CSSProperties = {
 
 const warningTextStyle: React.CSSProperties = {
   fontSize: '13px',
-  color: '#525252',
+  color: '#000000',
   textAlign: 'center',
   marginTop: '12px',
 };

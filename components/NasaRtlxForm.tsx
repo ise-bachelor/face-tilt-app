@@ -95,26 +95,29 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-center mb-2">
-        NASA-TLX アンケート
-      </h2>
-      <p className="text-sm text-gray-600 text-center mb-6">
-        参加者: {participantId} / 条件: {condition} / タスク: {taskName}
-      </p>
+    <div style={containerStyle}>
+      <div style={headerStyle}>
+        <h2 style={titleStyle}>NASA-TLX アンケート</h2>
+        <p style={subtitleStyle}>
+          参加者: {participantId} / 条件: {condition} / タスク: {taskName}
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {scaleItems.map((item) => (
-          <div key={item.key} className="border-b border-gray-200 pb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+      <form onSubmit={handleSubmit}>
+        {scaleItems.map((item, index) => (
+          <div key={item.key} style={{
+            ...questionContainerStyle,
+            borderBottom: index < scaleItems.length - 1 ? '1px solid #e5e5e5' : 'none'
+          }}>
+            <h3 style={questionTitleStyle}>
               {item.title}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p style={questionDescriptionStyle}>
               {item.description}
             </p>
 
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-gray-500">
+            <div style={sliderContainerStyle}>
+              <div style={sliderLabelsStyle}>
                 <span>低い (0)</span>
                 <span>高い (100)</span>
               </div>
@@ -125,10 +128,10 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
                 step={5}
                 value={values[item.key]}
                 onChange={(e) => handleSliderChange(item.key, Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                style={sliderStyle}
               />
-              <div className="text-center">
-                <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded">
+              <div style={valueDisplayContainerStyle}>
+                <span style={valueDisplayStyle}>
                   {values[item.key]}
                 </span>
               </div>
@@ -136,37 +139,152 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
           </div>
         ))}
 
-        <div className="pt-4">
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200"
-          >
+        <div style={submitContainerStyle}>
+          <button type="submit" style={submitButtonStyle}>
             回答を送信
           </button>
         </div>
       </form>
 
       <style jsx>{`
-        .slider::-webkit-slider-thumb {
+        input[type="range"] {
           -webkit-appearance: none;
           appearance: none;
-          width: 20px;
-          height: 20px;
-          background: #2563eb;
+          width: 100%;
+          height: 8px;
+          background: linear-gradient(to right, #d4d4d4, #737373);
+          border-radius: 4px;
+          outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 24px;
+          height: 24px;
+          background: #262626;
           cursor: pointer;
           border-radius: 50%;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          background: #2563eb;
+        input[type="range"]::-moz-range-thumb {
+          width: 24px;
+          height: 24px;
+          background: #262626;
           cursor: pointer;
           border-radius: 50%;
           border: none;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        input[type="range"]:hover::-webkit-slider-thumb {
+          background: #404040;
+        }
+        input[type="range"]:hover::-moz-range-thumb {
+          background: #404040;
         }
       `}</style>
     </div>
   );
+};
+
+const containerStyle: React.CSSProperties = {
+  maxWidth: '720px',
+  margin: '0 auto',
+  padding: '32px',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+};
+
+const headerStyle: React.CSSProperties = {
+  textAlign: 'center',
+  marginBottom: '32px',
+  paddingBottom: '24px',
+  borderBottom: '2px solid #e5e5e5',
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: '28px',
+  fontWeight: '700',
+  color: '#171717',
+  margin: '0 0 8px 0',
+  letterSpacing: '-0.5px',
+};
+
+const subtitleStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#737373',
+  margin: 0,
+};
+
+const questionContainerStyle: React.CSSProperties = {
+  padding: '24px 0',
+};
+
+const questionTitleStyle: React.CSSProperties = {
+  fontSize: '16px',
+  fontWeight: '600',
+  color: '#262626',
+  margin: '0 0 8px 0',
+};
+
+const questionDescriptionStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#525252',
+  margin: '0 0 20px 0',
+  lineHeight: '1.6',
+};
+
+const sliderContainerStyle: React.CSSProperties = {
+  padding: '0 4px',
+};
+
+const sliderLabelsStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  fontSize: '12px',
+  color: '#737373',
+  marginBottom: '8px',
+};
+
+const sliderStyle: React.CSSProperties = {
+  width: '100%',
+  cursor: 'pointer',
+};
+
+const valueDisplayContainerStyle: React.CSSProperties = {
+  textAlign: 'center',
+  marginTop: '12px',
+};
+
+const valueDisplayStyle: React.CSSProperties = {
+  display: 'inline-block',
+  backgroundColor: '#f5f5f5',
+  color: '#262626',
+  fontSize: '16px',
+  fontWeight: '600',
+  padding: '8px 20px',
+  borderRadius: '6px',
+  minWidth: '60px',
+  border: '1px solid #e5e5e5',
+};
+
+const submitContainerStyle: React.CSSProperties = {
+  marginTop: '32px',
+  paddingTop: '24px',
+  borderTop: '2px solid #e5e5e5',
+};
+
+const submitButtonStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '16px',
+  fontSize: '16px',
+  fontWeight: '600',
+  color: '#ffffff',
+  backgroundColor: '#262626',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
 };
 
 export default NasaRtlxForm;

@@ -125,54 +125,50 @@ export const CsqVrForm: React.FC<CsqVrFormProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-center mb-2">
-        CSQ-VR アンケート
-      </h2>
-      <p className="text-sm text-gray-600 text-center mb-2">
-        CyberSickness in Virtual Reality Questionnaire
-      </p>
-      <p className="text-sm text-gray-600 text-center mb-6">
-        参加者: {participantId} / 条件: {condition} / タスク: {taskName}
-      </p>
+    <div style={containerStyle}>
+      <div style={headerStyle}>
+        <h2 style={titleStyle}>CSQ-VR アンケート</h2>
+        <p style={englishTitleStyle}>CyberSickness in Virtual Reality Questionnaire</p>
+        <p style={subtitleStyle}>
+          参加者: {participantId} / 条件: {condition} / タスク: {taskName}
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {questionItems.map((item) => (
-          <div key={item.key} className="border-b border-gray-200 pb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+      <form onSubmit={handleSubmit}>
+        {questionItems.map((item, index) => (
+          <div key={item.key} style={{
+            ...questionContainerStyle,
+            borderBottom: index < questionItems.length - 1 ? '1px solid #e5e5e5' : 'none'
+          }}>
+            <h3 style={questionTitleStyle}>
               {item.titleJa}
             </h3>
-            <p className="text-sm text-gray-700 mb-1">
+            <p style={questionJaStyle}>
               {item.questionJa}
             </p>
-            <p className="text-xs text-gray-500 italic mb-4">
+            <p style={questionEnStyle}>
               {item.questionEn}
             </p>
 
-            <div className="space-y-3">
-              <div className="grid grid-cols-7 gap-1">
+            <div style={scaleContainerStyle}>
+              <div style={scaleButtonsStyle}>
                 {scaleLabels.map((label) => (
                   <button
                     key={label.value}
                     type="button"
                     onClick={() => handleScoreChange(item.key, label.value)}
-                    className={`
-                      p-2 text-xs rounded border transition-all duration-200
-                      ${responses[item.key].score === label.value
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
-                      }
-                    `}
+                    style={{
+                      ...scaleButtonStyle,
+                      ...(responses[item.key].score === label.value ? selectedButtonStyle : unselectedButtonStyle)
+                    }}
                   >
-                    <div className="font-bold">{label.value}</div>
-                    <div className="text-[10px] leading-tight hidden sm:block">
-                      {label.labelJa}
-                    </div>
+                    <div style={buttonNumberStyle}>{label.value}</div>
+                    <div style={buttonLabelStyle}>{label.labelJa}</div>
                   </button>
                 ))}
               </div>
 
-              <div className="text-xs text-gray-500 flex justify-between px-1">
+              <div style={scaleLabelsRowStyle}>
                 <span>{scaleLabels[0].labelEn}</span>
                 <span>{scaleLabels[6].labelEn}</span>
               </div>
@@ -181,29 +177,26 @@ export const CsqVrForm: React.FC<CsqVrFormProps> = ({
                 placeholder="この症状に関するコメント（任意） / Optional comments about this symptom"
                 value={responses[item.key].comment}
                 onChange={(e) => handleCommentChange(item.key, e.target.value)}
-                className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={textareaStyle}
                 rows={2}
               />
             </div>
           </div>
         ))}
 
-        <div className="pt-4">
+        <div style={submitContainerStyle}>
           <button
             type="submit"
             disabled={!isAllScoresSelected()}
-            className={`
-              w-full font-bold py-3 px-4 rounded-lg transition-colors duration-200
-              ${isAllScoresSelected()
-                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }
-            `}
+            style={{
+              ...submitButtonStyle,
+              ...(isAllScoresSelected() ? enabledButtonStyle : disabledButtonStyle)
+            }}
           >
             回答を送信
           </button>
           {!isAllScoresSelected() && (
-            <p className="text-sm text-red-500 text-center mt-2">
+            <p style={warningTextStyle}>
               全ての項目でスコアを選択してください
             </p>
           )}
@@ -211,6 +204,167 @@ export const CsqVrForm: React.FC<CsqVrFormProps> = ({
       </form>
     </div>
   );
+};
+
+const containerStyle: React.CSSProperties = {
+  maxWidth: '720px',
+  margin: '0 auto',
+  padding: '32px',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+};
+
+const headerStyle: React.CSSProperties = {
+  textAlign: 'center',
+  marginBottom: '32px',
+  paddingBottom: '24px',
+  borderBottom: '2px solid #e5e5e5',
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: '28px',
+  fontWeight: '700',
+  color: '#171717',
+  margin: '0 0 4px 0',
+  letterSpacing: '-0.5px',
+};
+
+const englishTitleStyle: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#737373',
+  margin: '0 0 8px 0',
+  fontStyle: 'italic',
+};
+
+const subtitleStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#737373',
+  margin: 0,
+};
+
+const questionContainerStyle: React.CSSProperties = {
+  padding: '24px 0',
+};
+
+const questionTitleStyle: React.CSSProperties = {
+  fontSize: '16px',
+  fontWeight: '600',
+  color: '#262626',
+  margin: '0 0 8px 0',
+};
+
+const questionJaStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#525252',
+  margin: '0 0 4px 0',
+  lineHeight: '1.6',
+};
+
+const questionEnStyle: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#737373',
+  margin: '0 0 20px 0',
+  fontStyle: 'italic',
+};
+
+const scaleContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+};
+
+const scaleButtonsStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(7, 1fr)',
+  gap: '6px',
+};
+
+const scaleButtonStyle: React.CSSProperties = {
+  padding: '10px 4px',
+  borderRadius: '6px',
+  border: '2px solid',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  textAlign: 'center',
+};
+
+const selectedButtonStyle: React.CSSProperties = {
+  backgroundColor: '#262626',
+  borderColor: '#262626',
+  color: '#ffffff',
+};
+
+const unselectedButtonStyle: React.CSSProperties = {
+  backgroundColor: '#fafafa',
+  borderColor: '#d4d4d4',
+  color: '#525252',
+};
+
+const buttonNumberStyle: React.CSSProperties = {
+  fontSize: '16px',
+  fontWeight: '700',
+};
+
+const buttonLabelStyle: React.CSSProperties = {
+  fontSize: '9px',
+  lineHeight: '1.2',
+  marginTop: '4px',
+};
+
+const scaleLabelsRowStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  fontSize: '11px',
+  color: '#737373',
+  padding: '0 4px',
+};
+
+const textareaStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  fontSize: '14px',
+  border: '1px solid #d4d4d4',
+  borderRadius: '6px',
+  resize: 'vertical',
+  fontFamily: 'inherit',
+  boxSizing: 'border-box',
+  outline: 'none',
+};
+
+const submitContainerStyle: React.CSSProperties = {
+  marginTop: '32px',
+  paddingTop: '24px',
+  borderTop: '2px solid #e5e5e5',
+};
+
+const submitButtonStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '16px',
+  fontSize: '16px',
+  fontWeight: '600',
+  border: 'none',
+  borderRadius: '8px',
+  transition: 'background-color 0.2s',
+};
+
+const enabledButtonStyle: React.CSSProperties = {
+  backgroundColor: '#262626',
+  color: '#ffffff',
+  cursor: 'pointer',
+};
+
+const disabledButtonStyle: React.CSSProperties = {
+  backgroundColor: '#d4d4d4',
+  color: '#737373',
+  cursor: 'not-allowed',
+};
+
+const warningTextStyle: React.CSSProperties = {
+  fontSize: '13px',
+  color: '#525252',
+  textAlign: 'center',
+  marginTop: '12px',
 };
 
 export default CsqVrForm;

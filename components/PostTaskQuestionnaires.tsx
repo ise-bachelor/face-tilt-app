@@ -34,9 +34,9 @@ export const PostTaskQuestionnaires: React.FC<PostTaskQuestionnairesProps> = ({
 
   if (step === 'nasa') {
     return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="mb-4 text-center">
-          <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded">
+      <div style={pageStyle}>
+        <div style={stepIndicatorContainerStyle}>
+          <span style={stepIndicatorStyle}>
             ステップ 1/2: NASA-TLX
           </span>
         </div>
@@ -52,9 +52,9 @@ export const PostTaskQuestionnaires: React.FC<PostTaskQuestionnairesProps> = ({
 
   if (step === 'csqvr') {
     return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="mb-4 text-center">
-          <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded">
+      <div style={pageStyle}>
+        <div style={stepIndicatorContainerStyle}>
+          <span style={stepIndicatorStyle}>
             ステップ 2/2: CSQ-VR
           </span>
         </div>
@@ -69,23 +69,88 @@ export const PostTaskQuestionnaires: React.FC<PostTaskQuestionnairesProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 flex items-center justify-center">
-      <div className="max-w-md mx-auto p-8 bg-white rounded-lg shadow-md text-center">
-        <div className="text-green-500 text-5xl mb-4">
+    <div style={completionPageStyle}>
+      <div style={completionContainerStyle}>
+        <div style={checkmarkStyle}>
           &#10003;
         </div>
-        <h2 className="text-2xl font-bold mb-4">
+        <h2 style={completionTitleStyle}>
           アンケート完了
         </h2>
-        <p className="text-gray-600 mb-2">
+        <p style={completionTextStyle}>
           全てのアンケートが完了しました。
         </p>
-        <p className="text-sm text-gray-500">
+        <p style={completionSubtextStyle}>
           回答データは CSV ファイルとしてダウンロードされました。
         </p>
       </div>
     </div>
   );
+};
+
+const pageStyle: React.CSSProperties = {
+  minHeight: '100vh',
+  backgroundColor: '#f5f5f5',
+  padding: '32px 16px',
+};
+
+const stepIndicatorContainerStyle: React.CSSProperties = {
+  marginBottom: '16px',
+  textAlign: 'center',
+};
+
+const stepIndicatorStyle: React.CSSProperties = {
+  display: 'inline-block',
+  backgroundColor: '#e5e5e5',
+  color: '#525252',
+  fontSize: '14px',
+  fontWeight: '600',
+  padding: '8px 16px',
+  borderRadius: '20px',
+};
+
+const completionPageStyle: React.CSSProperties = {
+  minHeight: '100vh',
+  backgroundColor: '#f5f5f5',
+  padding: '32px 16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const completionContainerStyle: React.CSSProperties = {
+  maxWidth: '400px',
+  margin: '0 auto',
+  padding: '48px 32px',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+  textAlign: 'center',
+};
+
+const checkmarkStyle: React.CSSProperties = {
+  fontSize: '48px',
+  color: '#525252',
+  marginBottom: '16px',
+};
+
+const completionTitleStyle: React.CSSProperties = {
+  fontSize: '24px',
+  fontWeight: '700',
+  color: '#171717',
+  margin: '0 0 16px 0',
+};
+
+const completionTextStyle: React.CSSProperties = {
+  fontSize: '16px',
+  color: '#525252',
+  margin: '0 0 8px 0',
+};
+
+const completionSubtextStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#737373',
+  margin: 0,
 };
 
 export default PostTaskQuestionnaires;

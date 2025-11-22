@@ -36,7 +36,7 @@ const Home: NextPage = () => {
   const { isPermissionGranted, isLoading, error, requestPermission } = useCamera();
   const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
-  const [condition, setCondition] = useState<ExperimentCondition>('rotate1');
+  const [condition, setCondition] = useState<ExperimentCondition>('default');
   const [taskName, setTaskName] = useState<TaskType>('minutes');
 
   // 同意フォームが完了したかどうか
@@ -86,7 +86,7 @@ const Home: NextPage = () => {
   // 同意フォーム完了後は実験設定画面を表示
   return (
     <div style={containerStyle}>
-      <h1 style={titleStyle}>実験用Webアプリケーション</h1>
+      <h1 style={titleStyle}>条件とタスクを選択してください</h1>
 
       {/* 参加者情報の表示 */}
       <div style={participantInfoBoxStyle}>
@@ -120,11 +120,20 @@ const Home: NextPage = () => {
               <label style={radioLabelStyle}>
                 <input
                   type="radio"
+                  value="default"
+                  checked={condition === 'default'}
+                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                />
+                <span style={radioTextStyle}>Default</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
                   value="rotate1"
                   checked={condition === 'rotate1'}
                   onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
                 />
-                <span style={radioTextStyle}>Rotate1（画面が回転）</span>
+                <span style={radioTextStyle}>Rotate1</span>
               </label>
               <label style={radioLabelStyle}>
                 <input
@@ -133,16 +142,7 @@ const Home: NextPage = () => {
                   checked={condition === 'rotate2'}
                   onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
                 />
-                <span style={radioTextStyle}>Rotate2（2倍回転）</span>
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="default"
-                  checked={condition === 'default'}
-                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
-                />
-                <span style={radioTextStyle}>Default（画面固定）</span>
+                <span style={radioTextStyle}>Rotate2</span>
               </label>
             </div>
           </div>
@@ -167,7 +167,7 @@ const Home: NextPage = () => {
                   checked={taskName === 'fitts'}
                   onChange={(e) => setTaskName(e.target.value as TaskType)}
                 />
-                <span style={radioTextStyle}>フィッツの法則タスク</span>
+                <span style={radioTextStyle}>ポインティングタスク</span>
               </label>
               <label style={radioLabelStyle}>
                 <input
@@ -176,15 +176,9 @@ const Home: NextPage = () => {
                   checked={taskName === 'steering'}
                   onChange={(e) => setTaskName(e.target.value as TaskType)}
                 />
-                <span style={radioTextStyle}>ステアリングの法則タスク</span>
+                <span style={radioTextStyle}>ドラッグタスク</span>
               </label>
             </div>
-          </div>
-
-          {/* タスク説明 */}
-          <div style={descriptionBoxStyle}>
-            <h3 style={descriptionTitleStyle}>タスク説明</h3>
-            <pre style={descriptionTextStyle}>{taskDescriptions[taskName]}</pre>
           </div>
 
           {/* タスク開始ボタン */}

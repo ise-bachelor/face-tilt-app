@@ -330,18 +330,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
             <p style={{ fontWeight: 'bold', color: '#1976d2' }}>練習モード</p>
             <p>練習回数: {practiceRound + 1} / 3</p>
           </>
-        ) : (
-          <>
-            <p>試行: {currentTrialIndex + 1} / {totalTrials}</p>
-            <p>難易度: {currentConfig.widthCondition} (幅: {currentConfig.W}px)</p>
-          </>
-        )}
-        {isDrawing && (
-          <>
-            <p>エラー回数: {errorCount}</p>
-            <p>エラー時間: {(errorTime / 1000).toFixed(2)}秒</p>
-          </>
-        )}
+        ) : (<></>)}
       </div>
 
       {/* キャンバス */}
@@ -357,9 +346,10 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
       {/* 説明 */}
       <div style={instructionStyle}>
-        {isDrawing
+        {isPractice ?
+        (isDrawing
           ? 'ゴールまでマウスボタンを押したまま進んでください'
-          : 'STARTエリアをクリックして開始してください'}
+          : 'STARTエリアをクリックして開始してください') : (<></>)}
       </div>
     </div>
   );

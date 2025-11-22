@@ -379,11 +379,12 @@ const FittsTaskPage = () => {
       {!isTaskStarted ? (
         // 説明画面（回転しない）
         <TaskInstructionScreen
-          title="Fitts タスク（ISO 9241-411）"
-          description="円周上に配置された13個のターゲットを対角交互にクリックしてください。"
-          additionalInfo={`全${DIFFICULTY_LEVELS.length}レベル × ${TRIALS_PER_LEVEL}試行 = 合計 ${
-            DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL
-          }試行`}
+          title="ポインティングタスク"
+          description={<>
+            黄色にハイライトされているターゲットを次々クリックしてください。
+            <br />
+            ・できるだけ速く、正確にクリックすることを心がけてください
+          </>}
           onStart={handleStartTask}
           isModelLoaded={isModelLoaded}
         />
@@ -399,18 +400,7 @@ const FittsTaskPage = () => {
                   練習回数: {practiceRound + 1} / {PRACTICE_ROUNDS}
                 </p>
               </>
-            ) : (
-              <>
-                <p>レベル: {currentLevel.label}</p>
-                <p>
-                  進捗: {currentTrialInLevel + 1} / {TRIALS_PER_LEVEL}
-                </p>
-                <p>
-                  全体: {totalTrials + 1} / {DIFFICULTY_LEVELS.length * TRIALS_PER_LEVEL}
-                </p>
-                <p>R={currentLevel.R}px, W={currentLevel.W}px</p>
-              </>
-            )}
+            ) : (<></>)}
           </div>
 
           {/* ターゲット表示エリア */}

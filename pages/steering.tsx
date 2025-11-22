@@ -245,15 +245,14 @@ const SteeringTaskPage = () => {
       {!isTaskStarted ? (
         // 説明画面（回転しない）
         <TaskInstructionScreen
-          title="Steering Law タスク"
+          title="ドラッグタスク"
           description={
             <>
-              トンネル内をマウスドラッグでなぞり、スタートからゴールまで移動してください。
+              トンネル内をマウスドラッグでなぞり、<br /> スタートからゴールまで移動してください。
               <br />
-              できるだけ速く、かつトンネルからはみ出さないように進んでください。
+              ・できるだけ速くかつトンネルからはみ出さないように進んでください。
             </>
           }
-          additionalInfo={`全${TOTAL_TRIALS}試行（3難易度 × 10試行）`}
           onStart={handleStartTask}
           isModelLoaded={isModelLoaded}
         />

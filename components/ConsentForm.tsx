@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ParticipantInfo, VideoConsentType } from '../types';
+import { ParticipantInfo, VideoConsentType, TypingTaskMapping, FittsDifficultyOrder } from '../types';
 
 interface ConsentFormProps {
   onSubmit: (participantInfo: ParticipantInfo) => void;
@@ -14,16 +14,39 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
   const [subConsent, setSubConsent] = useState<'identifiable' | 'anonymized' | ''>('');
   const [conditions, setConditions] = useState('');
 
+  // 参加者IDからマッピングを計算
+  const calculateMappings = (id: string): { typing: TypingTaskMapping; fitts: FittsDifficultyOrder } => {
+    // 数値部分を抽出
+    const numMatch = id.match(/\d+/);
+    const num = numMatch ? parseInt(numMatch[0], 10) : id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const remainder = num % 3;
+
+    // タイピング: 余り0→T1, 1→T2, 2→T3
+    const typingMappings: TypingTaskMapping[] = ['T1', 'T2', 'T3'];
+
+    // Fitts: 余り1→G1, 2→G2, 0→G3
+    const fittsGroups: FittsDifficultyOrder[] = ['G3', 'G1', 'G2'];
+
+    return {
+      typing: typingMappings[remainder],
+      fitts: fittsGroups[remainder],
+    };
+  };
+
   // デバッグ用スキップボタンのハンドラ
   const handleSkip = () => {
-    const participantInfo = {
+    const mappings = calculateMappings('999');
+    const participantInfo: ParticipantInfo = {
       participantId: '999',
       age: 0,
       gender: 'male',
       handedness: 'right',
-      videoConsent: 'approved',
-      debug: true,
-    } as any;
+      videoConsent: {
+        consentType: 'not_approved',
+      },
+      typingMapping: mappings.typing,
+      fittsDifficultyOrder: mappings.fitts,
+    };
     onSubmit(participantInfo);
   };
 
@@ -67,6 +90,9 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
       consentType = 'not_approved';
     }
 
+    // 参加者IDからマッピングを自動計算
+    const mappings = calculateMappings(participantId.trim());
+
     const participantInfo: ParticipantInfo = {
       participantId: participantId.trim(),
       age: ageNum,
@@ -76,6 +102,8 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
         consentType,
         conditions: mainConsent === 'conditional' ? conditions.trim() : undefined,
       },
+      typingMapping: mappings.typing,
+      fittsDifficultyOrder: mappings.fitts,
     };
 
     onSubmit(participantInfo);

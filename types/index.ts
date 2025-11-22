@@ -13,6 +13,44 @@ export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 // タスク種類
 export type TaskType = 'fitts' | 'steering' | 'minutes';
 
+// タイピングタスクのマッピング（条件→課題文）
+export type TypingTaskMapping = 'T1' | 'T2' | 'T3';
+
+// タイピングマッピングの定義
+// T1: D→A, R1→B, R2→C
+// T2: D→B, R1→C, R2→A
+// T3: D→C, R1→A, R2→B
+export const TYPING_MAPPINGS: Record<TypingTaskMapping, Record<ExperimentCondition, string>> = {
+  T1: { default: 'passage1', rotate1: 'passage2', rotate2: 'passage3' },
+  T2: { default: 'passage2', rotate1: 'passage3', rotate2: 'passage1' },
+  T3: { default: 'passage3', rotate1: 'passage1', rotate2: 'passage2' },
+};
+
+// Fittsタスクの難易度順序（参加者グループ）
+export type FittsDifficultyOrder = 'G1' | 'G2' | 'G3';
+
+// Fitts難易度順序の定義（グループ × 条件）
+// G1 (ID % 3 == 1): D→LMH, R1→MHL, R2→HLM
+// G2 (ID % 3 == 2): D→MHL, R1→HLM, R2→LMH
+// G3 (ID % 3 == 0): D→HLM, R1→LMH, R2→MHL
+export const FITTS_DIFFICULTY_ORDERS: Record<FittsDifficultyOrder, Record<ExperimentCondition, ('low' | 'mid' | 'high')[]>> = {
+  G1: {
+    default: ['low', 'mid', 'high'],
+    rotate1: ['mid', 'high', 'low'],
+    rotate2: ['high', 'low', 'mid'],
+  },
+  G2: {
+    default: ['mid', 'high', 'low'],
+    rotate1: ['high', 'low', 'mid'],
+    rotate2: ['low', 'mid', 'high'],
+  },
+  G3: {
+    default: ['high', 'low', 'mid'],
+    rotate1: ['low', 'mid', 'high'],
+    rotate2: ['mid', 'high', 'low'],
+  },
+};
+
 // 頭部姿勢（基準との差分）
 export interface HeadPose {
   pitch: number;
@@ -134,6 +172,8 @@ export interface ParticipantInfo {
   gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   handedness: 'right' | 'left' | 'other';
   videoConsent: VideoConsent;
+  typingMapping: TypingTaskMapping;
+  fittsDifficultyOrder: FittsDifficultyOrder;
 }
 
 // 実験セッション情報
@@ -143,6 +183,8 @@ export interface ExperimentSession {
   task_name: TaskType;
   start_time: number;
   participantInfo?: ParticipantInfo;  // 参加者情報を追加
+  typingMapping?: TypingTaskMapping;  // タイピングタスクのマッピング
+  fittsDifficultyOrder?: FittsDifficultyOrder;  // Fitts難易度順序
 }
 
 // 議事録編集タスク: 欠落文入力ログ（後方互換性のため残す）

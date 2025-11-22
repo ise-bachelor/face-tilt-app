@@ -65,8 +65,14 @@ const Home: NextPage = () => {
       return;
     }
 
-    // セッションを開始
-    startSession(participantInfo.participantId, condition, taskName);
+    // セッションを開始（マッピング情報はparticipantInfoから取得）
+    startSession(
+      participantInfo.participantId,
+      condition,
+      taskName,
+      participantInfo.typingMapping,
+      participantInfo.fittsDifficultyOrder
+    );
 
     // タスクページに遷移
     router.push(`/${taskName}`);

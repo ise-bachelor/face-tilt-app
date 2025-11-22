@@ -181,3 +181,38 @@ export interface TypingResultLog {
   final_time_ms: number;
   key_logs: TypingKeyLog[];
 }
+
+// NASA-RTLX 回答
+export interface NasaRtlxResponse {
+  mentalDemand: number;    // 0–100
+  physicalDemand: number;  // 0–100
+  temporalDemand: number;  // 0–100
+  performance: number;     // 0–100
+  effort: number;          // 0–100
+  frustration: number;     // 0–100
+  overallScore: number;    // 6指標の平均
+}
+
+// CSQ-VR 項目キー
+export type CsqVrItemKey =
+  | 'nauseaA'
+  | 'nauseaB'
+  | 'vestibularA'
+  | 'vestibularB'
+  | 'oculomotorA'
+  | 'oculomotorB';
+
+// CSQ-VR 各項目の回答
+export interface CsqVrItemResponse {
+  score: number;   // 1–7
+  comment: string; // 任意
+}
+
+// CSQ-VR 全体の回答
+export interface CsqVrResponse {
+  items: Record<CsqVrItemKey, CsqVrItemResponse>;
+  nauseaScore: number;      // nauseaA + nauseaB
+  vestibularScore: number;  // vestibularA + vestibularB
+  oculomotorScore: number;  // oculomotorA + oculomotorB
+  totalScore: number;       // 上記3カテゴリの合計
+}

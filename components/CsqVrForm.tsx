@@ -140,11 +140,8 @@ export const CsqVrForm: React.FC<CsqVrFormProps> = ({
             ...questionContainerStyle,
             borderBottom: index < questionItems.length - 1 ? '1px solid #e5e5e5' : 'none'
           }}>
-            <h3 style={questionTitleStyle}>
-              {item.titleJa}
-            </h3>
             <p style={questionJaStyle}>
-              {item.questionJa}
+              {item.key}：{item.questionJa}
             </p>
             <p style={questionEnStyle}>
               {item.questionEn}
@@ -164,13 +161,9 @@ export const CsqVrForm: React.FC<CsqVrFormProps> = ({
                   >
                     <div style={buttonNumberStyle}>{label.value}</div>
                     <div style={buttonLabelStyle}>{label.labelJa}</div>
+                    <div style={buttonLabelStyle}>{label.labelEn}</div>
                   </button>
                 ))}
-              </div>
-
-              <div style={scaleLabelsRowStyle}>
-                <span>{scaleLabels[0].labelEn}</span>
-                <span>{scaleLabels[6].labelEn}</span>
               </div>
 
               <textarea
@@ -256,7 +249,8 @@ const questionTitleStyle: React.CSSProperties = {
 
 const questionJaStyle: React.CSSProperties = {
   fontSize: '14px',
-  color: '#525252',
+  fontWeight: '800',
+  color: '#343434ff',
   margin: '0 0 4px 0',
   lineHeight: '1.6',
 };

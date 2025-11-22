@@ -3,7 +3,7 @@ import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useCamera } from '../contexts/CameraContext';
 import { useExperiment } from '../contexts/ExperimentContext';
-import { ExperimentCondition, TaskType, ParticipantInfo } from '../types';
+import { ExperimentCondition, TaskType, ParticipantInfo, TypingTaskMapping, FittsDifficultyOrder } from '../types';
 import { ConsentForm } from '../components/ConsentForm';
 import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
@@ -38,6 +38,8 @@ const Home: NextPage = () => {
 
   const [condition, setCondition] = useState<ExperimentCondition>('rotate1');
   const [taskName, setTaskName] = useState<TaskType>('minutes');
+  const [typingMapping, setTypingMapping] = useState<TypingTaskMapping>('M1');
+  const [fittsDifficultyOrder, setFittsDifficultyOrder] = useState<FittsDifficultyOrder>('M1');
 
   // 同意フォームが完了したかどうか
   const consentCompleted = participantInfo !== null;
@@ -66,7 +68,7 @@ const Home: NextPage = () => {
     }
 
     // セッションを開始
-    startSession(participantInfo.participantId, condition, taskName);
+    startSession(participantInfo.participantId, condition, taskName, typingMapping, fittsDifficultyOrder);
 
     // タスクページに遷移
     router.push(`/${taskName}`);
@@ -171,6 +173,81 @@ const Home: NextPage = () => {
                   onChange={(e) => setTaskName(e.target.value as TaskType)}
                 />
                 <span style={radioTextStyle}>ステアリングの法則タスク</span>
+              </label>
+            </div>
+          </div>
+
+          {/* タイピングタスク課題文マッピング選択 */}
+          <div style={formGroupStyle}>
+            <label style={labelStyle}>タイピング課題文マッピング</label>
+            <div style={mappingDescriptionStyle}>
+              <span>D=Default, R1=Rotate1, R2=Rotate2</span>
+              <span>A=課題文1, B=課題文2, C=課題文3</span>
+            </div>
+            <div style={radioGroupStyle}>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M1"
+                  checked={typingMapping === 'M1'}
+                  onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+                />
+                <span style={radioTextStyle}>M1: D→A, R1→B, R2→C</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M2"
+                  checked={typingMapping === 'M2'}
+                  onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+                />
+                <span style={radioTextStyle}>M2: D→B, R1→C, R2→A</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M3"
+                  checked={typingMapping === 'M3'}
+                  onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+                />
+                <span style={radioTextStyle}>M3: D→C, R1→A, R2→B</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Fittsタスク難易度順序選択 */}
+          <div style={formGroupStyle}>
+            <label style={labelStyle}>Fitts難易度順序</label>
+            <div style={mappingDescriptionStyle}>
+              <span>low=低難易度, mid=中難易度, high=高難易度</span>
+            </div>
+            <div style={radioGroupStyle}>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M1"
+                  checked={fittsDifficultyOrder === 'M1'}
+                  onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+                />
+                <span style={radioTextStyle}>M1: low → mid → high</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M2"
+                  checked={fittsDifficultyOrder === 'M2'}
+                  onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+                />
+                <span style={radioTextStyle}>M2: mid → high → low</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="M3"
+                  checked={fittsDifficultyOrder === 'M3'}
+                  onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+                />
+                <span style={radioTextStyle}>M3: high → low → mid</span>
               </label>
             </div>
           </div>
@@ -299,6 +376,15 @@ const radioTextStyle: React.CSSProperties = {
   marginLeft: '8px',
   fontSize: '16px',
   color: '#555',
+};
+
+const mappingDescriptionStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  fontSize: '12px',
+  color: '#888',
+  marginBottom: '8px',
+  lineHeight: '1.4',
 };
 
 const descriptionBoxStyle: React.CSSProperties = {

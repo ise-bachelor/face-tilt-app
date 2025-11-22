@@ -8,7 +8,7 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
-import { FittsTrialLog } from '../types';
+import { FittsTrialLog, FITTS_DIFFICULTY_ORDERS } from '../types';
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
@@ -20,11 +20,16 @@ interface DifficultyLevel {
   W: number; // Target Width
 }
 
-const DIFFICULTY_LEVELS: DifficultyLevel[] = [
-  { id: 'low', label: '低難易度', R: 150, W: 80 },
-  { id: 'mid', label: '中難易度', R: 300, W: 40 },
-  { id: 'high', label: '高難易度', R: 450, W: 20 },
-];
+const ALL_DIFFICULTY_LEVELS: Record<'low' | 'mid' | 'high', DifficultyLevel> = {
+  low: { id: 'low', label: '低難易度', R: 150, W: 80 },
+  mid: { id: 'mid', label: '中難易度', R: 300, W: 40 },
+  high: { id: 'high', label: '高難易度', R: 450, W: 20 },
+};
+
+// 難易度レベルを順序に基づいて取得
+const getDifficultyLevels = (order: ('low' | 'mid' | 'high')[]): DifficultyLevel[] => {
+  return order.map(id => ALL_DIFFICULTY_LEVELS[id]);
+};
 
 // ターゲット数（円周上）
 const NUM_TARGETS = 13;
@@ -75,6 +80,10 @@ const FittsTaskPage = () => {
     screenRotation,
     isRecording,
   });
+
+  // セッションの設定に基づいて難易度レベルを取得
+  const difficultyOrder = session?.fittsDifficultyOrder || 'M1';
+  const DIFFICULTY_LEVELS = getDifficultyLevels(FITTS_DIFFICULTY_ORDERS[difficultyOrder]);
 
   const currentLevel = DIFFICULTY_LEVELS[currentLevelIndex];
   const totalTrials = currentLevelIndex * TRIALS_PER_LEVEL + currentTrialInLevel;

@@ -13,6 +13,32 @@ export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 // タスク種類
 export type TaskType = 'fitts' | 'steering' | 'minutes';
 
+// タイピングタスクのマッピング（条件→課題文）
+export type TypingTaskMapping = 'M1' | 'M2' | 'M3';
+
+// タイピングマッピングの定義
+// M1: D→A, R1→B, R2→C
+// M2: D→B, R1→C, R2→A
+// M3: D→C, R1→A, R2→B
+export const TYPING_MAPPINGS: Record<TypingTaskMapping, Record<ExperimentCondition, string>> = {
+  M1: { default: 'passage1', rotate1: 'passage2', rotate2: 'passage3' },
+  M2: { default: 'passage2', rotate1: 'passage3', rotate2: 'passage1' },
+  M3: { default: 'passage3', rotate1: 'passage1', rotate2: 'passage2' },
+};
+
+// Fittsタスクの難易度順序
+export type FittsDifficultyOrder = 'M1' | 'M2' | 'M3';
+
+// Fitts難易度順序の定義
+// M1: low → mid → high
+// M2: mid → high → low
+// M3: high → low → mid
+export const FITTS_DIFFICULTY_ORDERS: Record<FittsDifficultyOrder, ('low' | 'mid' | 'high')[]> = {
+  M1: ['low', 'mid', 'high'],
+  M2: ['mid', 'high', 'low'],
+  M3: ['high', 'low', 'mid'],
+};
+
 // 頭部姿勢（基準との差分）
 export interface HeadPose {
   pitch: number;
@@ -143,6 +169,8 @@ export interface ExperimentSession {
   task_name: TaskType;
   start_time: number;
   participantInfo?: ParticipantInfo;  // 参加者情報を追加
+  typingMapping?: TypingTaskMapping;  // タイピングタスクのマッピング
+  fittsDifficultyOrder?: FittsDifficultyOrder;  // Fitts難易度順序
 }
 
 // 議事録編集タスク: 欠落文入力ログ（後方互換性のため残す）

@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ExperimentCondition, TaskType, ExperimentSession, ParticipantInfo } from '../types';
+import { ExperimentCondition, TaskType, ExperimentSession, ParticipantInfo, TypingTaskMapping, FittsDifficultyOrder } from '../types';
 
 interface ExperimentContextType {
   session: ExperimentSession | null;
   participantInfo: ParticipantInfo | null;
   setParticipantInfo: (info: ParticipantInfo) => void;
-  startSession: (participantId: string, condition: ExperimentCondition, taskName: TaskType) => void;
+  startSession: (
+    participantId: string,
+    condition: ExperimentCondition,
+    taskName: TaskType,
+    typingMapping?: TypingTaskMapping,
+    fittsDifficultyOrder?: FittsDifficultyOrder
+  ) => void;
   endSession: () => void;
 }
 
@@ -15,13 +21,21 @@ export const ExperimentProvider: React.FC<{ children: ReactNode }> = ({ children
   const [session, setSession] = useState<ExperimentSession | null>(null);
   const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
 
-  const startSession = (participantId: string, condition: ExperimentCondition, taskName: TaskType) => {
+  const startSession = (
+    participantId: string,
+    condition: ExperimentCondition,
+    taskName: TaskType,
+    typingMapping?: TypingTaskMapping,
+    fittsDifficultyOrder?: FittsDifficultyOrder
+  ) => {
     setSession({
       participant_id: participantId,
       condition,
       task_name: taskName,
       start_time: Date.now(),
       participantInfo: participantInfo || undefined,
+      typingMapping,
+      fittsDifficultyOrder,
     });
   };
 

@@ -10,8 +10,8 @@ import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 import { TypingTask } from '../components/TypingTask';
-import { TypingResultLog } from '../types';
-import { getPassageForParticipant } from '../data/typingPassages';
+import { TypingResultLog, TYPING_MAPPINGS } from '../types';
+import { getPassageById } from '../data/typingPassages';
 import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
 const TypingTaskPage = () => {
@@ -41,8 +41,13 @@ const TypingTaskPage = () => {
     isRecording,
   });
 
-  // 参加者IDに基づいて課題文を取得
-  const passage = session ? getPassageForParticipant(session.participant_id) : null;
+  // マッピングに基づいて課題文を取得
+  const passage = (() => {
+    if (!session) return null;
+    const mapping = session.typingMapping || 'M1';
+    const passageId = TYPING_MAPPINGS[mapping][session.condition];
+    return getPassageById(passageId) || null;
+  })();
 
   // セッションがない場合はホームに戻る
   useEffect(() => {

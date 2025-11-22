@@ -12,38 +12,52 @@ interface ScaleItem {
   key: keyof Omit<NasaRtlxResponse, 'overallScore'>;
   title: string;
   description: string;
+  lowLabel: string;
+  highLabel: string;
 }
 
 const scaleItems: ScaleItem[] = [
   {
     key: 'mentalDemand',
-    title: '知的・知覚的要求 (Mental Demand)',
-    description: 'どの程度の知的・知覚的活動（考える，決める，計算する，記憶する，見るなど）を必要としましたか。課題はやさしかったですか難しかったですか，単純でしたか複雑でしたか，正確さが求められましたか大ざっぱでよかったですか。'
+    title: '精神的欲求',
+    description: 'どの程度の精神的、知覚的活動が必要でしたか？（例：思考、決定、計算、記憶、観察、検索など）課題は易しかったですか、それとも難しかったですか？単純でしたか、複雑でしたか？厳密さを要求されましたか、それとも寛大でしたか？',
+    lowLabel: '低い',
+    highLabel: '高い'
   },
   {
     key: 'physicalDemand',
-    title: '身体的要求 (Physical Demand)',
-    description: 'どの程度の身体的活動（押す，引く，回す，制御する，動き回るなど）を必要としましたか。作業はラクでしたかキツかったですか，ゆっくりできましたかキビキビやらなければなりませんでしたか，休み休みできましたか働きづめでしたか。'
+    title: '身体的欲求',
+    description: 'どの程度の身体的活動が必要でしたか？（例：押す、引く、回す、制御する、起動するなど）課題は易しかったですか、それとも難しかったですか？ゆっくりでしたか、きびきびしていましたか？ゆるやかでしたか、骨の折れるものでしたか？休息できましたか、骨身を惜しまぬものでしたか？',
+    lowLabel: '低い',
+    highLabel: '高い'
   },
   {
     key: 'temporalDemand',
-    title: 'タイムプレッシャー (Temporal Demand)',
-    description: '仕事のペースや課題が発生する頻度のために感じる時間的切迫感はどの程度でしたか。ペースはゆっくりとして余裕があるものでしたか，それとも速くて余裕のないものでしたか。'
+    title: '時間的欲求',
+    description: '課題の遂行中にどの程度の時間的圧迫を感じましたか？ペースはゆっくりで余裕がありましたか、それとも速くてあわただしかったですか？',
+    lowLabel: '低い',
+    highLabel: '高い'
   },
   {
     key: 'performance',
-    title: '作業成績 (Performance)',
-    description: '作業指示者（またはあなた自身）によって設定された課題の目標をどの程度達成できたと思いますか。目標の達成に関して自分の作業成績にどの程度満足していますか。'
+    title: '作業達成度',
+    description: '実験者（または自分自身）によって設定された課題の目標をどの程度うまく達成できたと思いますか？課題目標の達成における自身の作業成績について、どの程度満足していますか？',
+    lowLabel: '良い',
+    highLabel: '悪い'
   },
   {
     key: 'effort',
-    title: '努力 (Effort)',
-    description: '作業成績のレベルを達成・維持するために，精神的・身体的にどの程度いっしょうけんめいに作業しなければなりませんでしたか。'
+    title: '努力',
+    description: '自身の作業成績のレベルを達成するために、精神的及び身体的にどの程度一生懸命作業しなければなりませんでしたか？',
+    lowLabel: '低い',
+    highLabel: '高い'
   },
   {
     key: 'frustration',
-    title: 'フラストレーション (Frustration)',
-    description: '作業中に，不安感，落胆，いらいら，ストレス，悩みをどの程度感じましたか。あるいは逆に，安心感，満足感，充足感，楽しさ，リラックスをどの程度感じましたか。'
+    title: '不満',
+    description: '課題遂行中に、不安、落胆、いらいら、ストレス、うんざりといった感情と対照的に、安心、満足、充足、リラックスといった感情をどの程度感じましたか？',
+    lowLabel: '低い',
+    highLabel: '高い'
   }
 ];
 
@@ -97,7 +111,7 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <h2 style={titleStyle}>NASA-TLX アンケート</h2>
+        <h2 style={titleStyle}>NASA-TLX</h2>
         <p style={subtitleStyle}>
           参加者: {participantId} / 条件: {condition} / タスク: {taskName}
         </p>
@@ -118,22 +132,24 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
 
             <div style={sliderContainerStyle}>
               <div style={sliderLabelsStyle}>
-                <span>低い (0)</span>
-                <span>高い (100)</span>
+                <span style={labelStyle}>{item.lowLabel}</span>
+                <span style={labelStyle}>{item.highLabel}</span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={values[item.key]}
-                onChange={(e) => handleSliderChange(item.key, Number(e.target.value))}
-                style={sliderStyle}
-              />
-              <div style={valueDisplayContainerStyle}>
-                <span style={valueDisplayStyle}>
-                  {values[item.key]}
-                </span>
+              <div style={sliderWrapperStyle}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={values[item.key]}
+                  onChange={(e) => handleSliderChange(item.key, Number(e.target.value))}
+                  style={sliderInputStyle}
+                />
+                <div style={tickMarksStyle}>
+                  {Array.from({ length: 21 }).map((_, i) => (
+                    <div key={i} style={tickMarkStyle} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -151,27 +167,28 @@ export const NasaRtlxForm: React.FC<NasaRtlxFormProps> = ({
           -webkit-appearance: none;
           appearance: none;
           width: 100%;
-          height: 8px;
-          background: linear-gradient(to right, #d4d4d4, #737373);
-          border-radius: 4px;
+          height: 4px;
+          background: #404040;
+          border-radius: 0;
           outline: none;
+          margin: 0;
         }
         input[type="range"]::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 24px;
-          height: 24px;
+          width: 16px;
+          height: 32px;
           background: #262626;
           cursor: pointer;
-          border-radius: 50%;
+          border-radius: 2px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         input[type="range"]::-moz-range-thumb {
-          width: 24px;
-          height: 24px;
+          width: 16px;
+          height: 32px;
           background: #262626;
           cursor: pointer;
-          border-radius: 50%;
+          border-radius: 2px;
           border: none;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
@@ -228,10 +245,10 @@ const questionTitleStyle: React.CSSProperties = {
 };
 
 const questionDescriptionStyle: React.CSSProperties = {
-  fontSize: '14px',
+  fontSize: '13px',
   color: '#525252',
   margin: '0 0 20px 0',
-  lineHeight: '1.6',
+  lineHeight: '1.7',
 };
 
 const sliderContainerStyle: React.CSSProperties = {
@@ -241,31 +258,41 @@ const sliderContainerStyle: React.CSSProperties = {
 const sliderLabelsStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
-  fontSize: '12px',
-  color: '#737373',
   marginBottom: '8px',
 };
 
-const sliderStyle: React.CSSProperties = {
+const labelStyle: React.CSSProperties = {
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#262626',
+};
+
+const sliderWrapperStyle: React.CSSProperties = {
+  position: 'relative',
+  paddingBottom: '16px',
+};
+
+const sliderInputStyle: React.CSSProperties = {
   width: '100%',
   cursor: 'pointer',
+  position: 'relative',
+  zIndex: 2,
 };
 
-const valueDisplayContainerStyle: React.CSSProperties = {
-  textAlign: 'center',
-  marginTop: '12px',
+const tickMarksStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '2px',
+  left: '0',
+  right: '0',
+  display: 'flex',
+  justifyContent: 'space-between',
+  pointerEvents: 'none',
 };
 
-const valueDisplayStyle: React.CSSProperties = {
-  display: 'inline-block',
-  backgroundColor: '#f5f5f5',
-  color: '#262626',
-  fontSize: '16px',
-  fontWeight: '600',
-  padding: '8px 20px',
-  borderRadius: '6px',
-  minWidth: '60px',
-  border: '1px solid #e5e5e5',
+const tickMarkStyle: React.CSSProperties = {
+  width: '1px',
+  height: '12px',
+  backgroundColor: '#737373',
 };
 
 const submitContainerStyle: React.CSSProperties = {

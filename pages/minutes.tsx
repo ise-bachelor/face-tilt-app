@@ -29,7 +29,9 @@ const TypingTaskPage = () => {
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
+  const [isTaskCompleted, setIsTaskCompleted] = useState(false);
   const [isShowingQuestionnaire, setIsShowingQuestionnaire] = useState(false);
+  const [typingResult, setTypingResult] = useState<TypingResultLog | null>(null);
 
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
@@ -89,12 +91,19 @@ const TypingTaskPage = () => {
     stopRecording();
 
     setIsTaskStarted(false);
-
-    // データダウンロード
-    setTimeout(() => {
-      downloadData(result);
-    }, 1000);
+    setTypingResult(result);
+    setIsTaskCompleted(true);
   };
+
+  // 完了画面に遷移したら自動でデータダウンロード
+  useEffect(() => {
+    if (isTaskCompleted && typingResult) {
+      const timer = setTimeout(() => {
+        downloadData(typingResult);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isTaskCompleted, typingResult]);
 
   const downloadData = (result: TypingResultLog) => {
     if (!session) return;
@@ -119,8 +128,11 @@ const TypingTaskPage = () => {
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_video.webm`);
     }
+  };
 
-    // アンケート画面に遷移
+  // アンケートへ進む
+  const handleProceedToQuestionnaire = () => {
+    setIsTaskCompleted(false);
     setIsShowingQuestionnaire(true);
   };
 
@@ -183,6 +195,25 @@ const TypingTaskPage = () => {
 
   if (!session || !passage) {
     return <div>読み込み中...</div>;
+  }
+
+  // タスク完了画面
+  if (isTaskCompleted) {
+    return (
+      <div style={pageStyle}>
+        <div style={completionContainerStyle}>
+          <h1 style={titleStyle}>タスク完了</h1>
+          <p style={descriptionStyle}>
+            タイピングタスクが完了しました。
+            <br />
+            データは自動でダウンロードされています。
+          </p>
+          <button onClick={handleProceedToQuestionnaire} style={questionnaireButtonStyle}>
+            アンケートへ進む
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // アンケート画面
@@ -248,6 +279,44 @@ const pageStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+};
+
+const completionContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '40px',
+  backgroundColor: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: '32px',
+  fontWeight: 'bold',
+  marginBottom: '20px',
+  color: '#333',
+};
+
+const descriptionStyle: React.CSSProperties = {
+  fontSize: '18px',
+  color: '#666',
+  marginBottom: '20px',
+  textAlign: 'center',
+  lineHeight: '1.6',
+};
+
+const questionnaireButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  marginTop: '20px',
 };
 
 export default TypingTaskPage;

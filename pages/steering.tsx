@@ -109,8 +109,18 @@ const SteeringTaskPage = () => {
     setIsTaskCompleted(true);
   };
 
+  // 完了画面に遷移したら自動でデータダウンロード
+  useEffect(() => {
+    if (isTaskCompleted && steeringLogs.length > 0) {
+      const timer = setTimeout(() => {
+        downloadData();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isTaskCompleted, steeringLogs]);
+
   // データダウンロード
-  const handleDownloadData = () => {
+  const downloadData = () => {
     if (!session) return;
 
     const baseFilename = `${session.participant_id}_steering_${session.condition}`;
@@ -132,8 +142,10 @@ const SteeringTaskPage = () => {
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
     }
+  };
 
-    // アンケート画面に遷移
+  // アンケートへ進む
+  const handleProceedToQuestionnaire = () => {
     setIsTaskCompleted(false);
     setIsShowingQuestionnaire(true);
   };
@@ -218,15 +230,12 @@ const SteeringTaskPage = () => {
           <h1 style={titleStyle}>タスク完了</h1>
           <p style={descriptionStyle}>
             全 {TOTAL_TRIALS} 試行が完了しました。
+            <br />
+            データは自動でダウンロードされています。
           </p>
-          <div style={buttonContainerStyle}>
-            <button onClick={handleDownloadData} style={downloadButtonStyle}>
-              データをダウンロード
-            </button>
-            <button onClick={handleBackToHome} style={homeButtonStyle}>
-              ホームに戻る
-            </button>
-          </div>
+          <button onClick={handleProceedToQuestionnaire} style={questionnaireButtonStyle}>
+            アンケートへ進む
+          </button>
         </div>
       </div>
     );
@@ -379,6 +388,18 @@ const homeButtonStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: '8px',
   cursor: 'pointer',
+};
+
+const questionnaireButtonStyle: React.CSSProperties = {
+  padding: '16px 32px',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  marginTop: '20px',
 };
 
 const practiceCompleteOverlayStyle: React.CSSProperties = {

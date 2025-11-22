@@ -14,29 +14,29 @@ export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 export type TaskType = 'fitts' | 'steering' | 'minutes';
 
 // タイピングタスクのマッピング（条件→課題文）
-export type TypingTaskMapping = 'M1' | 'M2' | 'M3';
+export type TypingTaskMapping = 'T1' | 'T2' | 'T3';
 
 // タイピングマッピングの定義
-// M1: D→A, R1→B, R2→C
-// M2: D→B, R1→C, R2→A
-// M3: D→C, R1→A, R2→B
+// T1: D→A, R1→B, R2→C
+// T2: D→B, R1→C, R2→A
+// T3: D→C, R1→A, R2→B
 export const TYPING_MAPPINGS: Record<TypingTaskMapping, Record<ExperimentCondition, string>> = {
-  M1: { default: 'passage1', rotate1: 'passage2', rotate2: 'passage3' },
-  M2: { default: 'passage2', rotate1: 'passage3', rotate2: 'passage1' },
-  M3: { default: 'passage3', rotate1: 'passage1', rotate2: 'passage2' },
+  T1: { default: 'passage1', rotate1: 'passage2', rotate2: 'passage3' },
+  T2: { default: 'passage2', rotate1: 'passage3', rotate2: 'passage1' },
+  T3: { default: 'passage3', rotate1: 'passage1', rotate2: 'passage2' },
 };
 
 // Fittsタスクの難易度順序
-export type FittsDifficultyOrder = 'M1' | 'M2' | 'M3';
+export type FittsDifficultyOrder = 'F1' | 'F2' | 'F3';
 
 // Fitts難易度順序の定義
-// M1: low → mid → high
-// M2: mid → high → low
-// M3: high → low → mid
+// F1: low → mid → high
+// F2: mid → high → low
+// F3: high → low → mid
 export const FITTS_DIFFICULTY_ORDERS: Record<FittsDifficultyOrder, ('low' | 'mid' | 'high')[]> = {
-  M1: ['low', 'mid', 'high'],
-  M2: ['mid', 'high', 'low'],
-  M3: ['high', 'low', 'mid'],
+  F1: ['low', 'mid', 'high'],
+  F2: ['mid', 'high', 'low'],
+  F3: ['high', 'low', 'mid'],
 };
 
 // 頭部姿勢（基準との差分）
@@ -160,6 +160,8 @@ export interface ParticipantInfo {
   gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   handedness: 'right' | 'left' | 'other';
   videoConsent: VideoConsent;
+  typingMapping: TypingTaskMapping;
+  fittsDifficultyOrder: FittsDifficultyOrder;
 }
 
 // 実験セッション情報

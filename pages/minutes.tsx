@@ -44,7 +44,7 @@ const TypingTaskPage = () => {
   // マッピングに基づいて課題文を取得
   const passage = (() => {
     if (!session) return null;
-    const mapping = session.typingMapping || 'M1';
+    const mapping = session.typingMapping || 'T1';
     const passageId = TYPING_MAPPINGS[mapping][session.condition];
     return getPassageById(passageId) || null;
   })();

@@ -82,7 +82,7 @@ const FittsTaskPage = () => {
   });
 
   // セッションの設定に基づいて難易度レベルを取得
-  const difficultyOrder = session?.fittsDifficultyOrder || 'M1';
+  const difficultyOrder = session?.fittsDifficultyOrder || 'F1';
   const DIFFICULTY_LEVELS = getDifficultyLevels(FITTS_DIFFICULTY_ORDERS[difficultyOrder]);
 
   const currentLevel = DIFFICULTY_LEVELS[currentLevelIndex];

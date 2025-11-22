@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ParticipantInfo, VideoConsentType } from '../types';
+import { ParticipantInfo, VideoConsentType, TypingTaskMapping, FittsDifficultyOrder } from '../types';
 
 interface ConsentFormProps {
   onSubmit: (participantInfo: ParticipantInfo) => void;
@@ -13,17 +13,22 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
   const [mainConsent, setMainConsent] = useState<'approved' | 'conditional' | 'not_approved' | ''>('');
   const [subConsent, setSubConsent] = useState<'identifiable' | 'anonymized' | ''>('');
   const [conditions, setConditions] = useState('');
+  const [typingMapping, setTypingMapping] = useState<TypingTaskMapping>('T1');
+  const [fittsDifficultyOrder, setFittsDifficultyOrder] = useState<FittsDifficultyOrder>('F1');
 
   // デバッグ用スキップボタンのハンドラ
   const handleSkip = () => {
-    const participantInfo = {
+    const participantInfo: ParticipantInfo = {
       participantId: '999',
       age: 0,
       gender: 'male',
       handedness: 'right',
-      videoConsent: 'approved',
-      debug: true,
-    } as any;
+      videoConsent: {
+        consentType: 'not_approved',
+      },
+      typingMapping: 'T1',
+      fittsDifficultyOrder: 'F1',
+    };
     onSubmit(participantInfo);
   };
 
@@ -76,6 +81,8 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
         consentType,
         conditions: mainConsent === 'conditional' ? conditions.trim() : undefined,
       },
+      typingMapping,
+      fittsDifficultyOrder,
     };
 
     onSubmit(participantInfo);
@@ -164,6 +171,81 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
                 onChange={(e) => setHandedness(e.target.value as any)}
               />
               <span style={radioTextStyle}>左利き</span>
+            </label>
+          </div>
+        </div>
+
+        {/* タイピングタスク課題文マッピング */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>タイピング課題文マッピング *</label>
+          <div style={mappingDescriptionStyle}>
+            <span>D=Default, R1=Rotate1, R2=Rotate2</span>
+            <span>A=課題文1, B=課題文2, C=課題文3</span>
+          </div>
+          <div style={radioGroupStyle}>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="T1"
+                checked={typingMapping === 'T1'}
+                onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+              />
+              <span style={radioTextStyle}>T1: D→A, R1→B, R2→C</span>
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="T2"
+                checked={typingMapping === 'T2'}
+                onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+              />
+              <span style={radioTextStyle}>T2: D→B, R1→C, R2→A</span>
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="T3"
+                checked={typingMapping === 'T3'}
+                onChange={(e) => setTypingMapping(e.target.value as TypingTaskMapping)}
+              />
+              <span style={radioTextStyle}>T3: D→C, R1→A, R2→B</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Fittsタスク難易度順序 */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>Fitts難易度順序 *</label>
+          <div style={mappingDescriptionStyle}>
+            <span>low=低難易度, mid=中難易度, high=高難易度</span>
+          </div>
+          <div style={radioGroupStyle}>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="F1"
+                checked={fittsDifficultyOrder === 'F1'}
+                onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+              />
+              <span style={radioTextStyle}>F1: low → mid → high</span>
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="F2"
+                checked={fittsDifficultyOrder === 'F2'}
+                onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+              />
+              <span style={radioTextStyle}>F2: mid → high → low</span>
+            </label>
+            <label style={radioLabelStyle}>
+              <input
+                type="radio"
+                value="F3"
+                checked={fittsDifficultyOrder === 'F3'}
+                onChange={(e) => setFittsDifficultyOrder(e.target.value as FittsDifficultyOrder)}
+              />
+              <span style={radioTextStyle}>F3: high → low → mid</span>
             </label>
           </div>
         </div>
@@ -354,6 +436,15 @@ const radioTextStyle: React.CSSProperties = {
   marginLeft: '8px',
   fontSize: '16px',
   color: '#555',
+};
+
+const mappingDescriptionStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  fontSize: '12px',
+  color: '#888',
+  marginBottom: '8px',
+  lineHeight: '1.4',
 };
 
 const consentBoxStyle: React.CSSProperties = {

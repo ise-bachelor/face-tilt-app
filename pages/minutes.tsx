@@ -95,15 +95,15 @@ const TypingTaskPage = () => {
     setIsTaskCompleted(true);
   };
 
-  // 完了画面に遷移したら自動でデータダウンロード
+  // 完了画面に遷移したら自動でデータダウンロード（cameraBlobの準備を待つ）
   useEffect(() => {
-    if (isTaskCompleted && typingResult) {
+    if (isTaskCompleted && typingResult && cameraBlob) {
       const timer = setTimeout(() => {
         downloadData(typingResult);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isTaskCompleted, typingResult]);
+  }, [isTaskCompleted, typingResult, cameraBlob]);
 
   const downloadData = (result: TypingResultLog) => {
     if (!session) return;

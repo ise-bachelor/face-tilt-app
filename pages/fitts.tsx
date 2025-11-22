@@ -237,15 +237,15 @@ const FittsTaskPage = () => {
     setIsTaskCompleted(true);
   };
 
-  // 完了画面に遷移したら自動でデータダウンロード
+  // 完了画面に遷移したら自動でデータダウンロード（cameraBlobの準備を待つ）
   useEffect(() => {
-    if (isTaskCompleted) {
+    if (isTaskCompleted && cameraBlob) {
       const timer = setTimeout(() => {
         downloadData();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isTaskCompleted]);
+  }, [isTaskCompleted, cameraBlob]);
 
   // データダウンロード
   const downloadData = () => {

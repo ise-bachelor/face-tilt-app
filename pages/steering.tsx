@@ -109,15 +109,15 @@ const SteeringTaskPage = () => {
     setIsTaskCompleted(true);
   };
 
-  // 完了画面に遷移したら自動でデータダウンロード
+  // 完了画面に遷移したら自動でデータダウンロード（cameraBlobの準備を待つ）
   useEffect(() => {
-    if (isTaskCompleted && steeringLogs.length > 0) {
+    if (isTaskCompleted && steeringLogs.length > 0 && cameraBlob) {
       const timer = setTimeout(() => {
         downloadData();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isTaskCompleted, steeringLogs]);
+  }, [isTaskCompleted, steeringLogs, cameraBlob]);
 
   // データダウンロード
   const downloadData = () => {

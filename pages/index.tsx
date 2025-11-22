@@ -185,6 +185,13 @@ const Home: NextPage = () => {
           <button onClick={handleStartTask} style={startButtonStyle}>
             タスク開始
           </button>
+
+          {/* デバッグ用リンク */}
+          <div style={debugLinkContainerStyle}>
+            <a href="/questionnaire-debug" style={debugLinkStyle}>
+              アンケートデバッグページ
+            </a>
+          </div>
         </div>
       )}
     </div>
@@ -341,6 +348,19 @@ const buttonStyle: React.CSSProperties = {
   borderRadius: '6px',
   cursor: 'pointer',
   marginTop: '10px',
+};
+
+const debugLinkContainerStyle: React.CSSProperties = {
+  marginTop: '20px',
+  paddingTop: '20px',
+  borderTop: '1px solid #e0e0e0',
+  textAlign: 'center',
+};
+
+const debugLinkStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#666',
+  textDecoration: 'underline',
 };
 
 export default Home;

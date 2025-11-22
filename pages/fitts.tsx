@@ -10,6 +10,7 @@ import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { FittsTrialLog } from '../types';
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
+import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
 // 難易度レベルの定義
 interface DifficultyLevel {
@@ -52,6 +53,7 @@ const FittsTaskPage = () => {
   // タスク状態管理
   const [isTaskStarted, setIsTaskStarted] = useState(false);
   const [isTaskCompleted, setIsTaskCompleted] = useState(false);
+  const [isShowingQuestionnaire, setIsShowingQuestionnaire] = useState(false);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [currentTrialInLevel, setCurrentTrialInLevel] = useState(0);
   const [currentTargetIndex, setCurrentTargetIndex] = useState<number | null>(null);
@@ -240,8 +242,15 @@ const FittsTaskPage = () => {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
     }
 
-    // セッション終了してホームに戻る
-    alert('データのダウンロードが完了しました。');
+    // アンケート画面に遷移
+    setIsTaskCompleted(false);
+    setIsShowingQuestionnaire(true);
+  };
+
+  // アンケート完了後の処理
+  const handleQuestionnaireFinished = () => {
+    endSession();
+    router.push('/');
   };
 
   // Fitts ログを CSV に変換
@@ -302,6 +311,18 @@ const FittsTaskPage = () => {
 
   if (!session) {
     return <div>読み込み中...</div>;
+  }
+
+  // アンケート画面
+  if (isShowingQuestionnaire) {
+    return (
+      <PostTaskQuestionnaires
+        participantId={session.participant_id}
+        condition={session.condition}
+        taskName="Fitts"
+        onFinished={handleQuestionnaireFinished}
+      />
+    );
   }
 
   // タスク完了画面

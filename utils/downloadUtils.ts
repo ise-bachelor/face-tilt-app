@@ -110,3 +110,141 @@ const getConsentTypeLabel = (consentType: string): string => {
       return consentType;
   }
 };
+
+/**
+ * CSV用に値をエスケープ（カンマ、改行、ダブルクォートを含む場合）
+ */
+export const escapeCsvValue = (value: string | number): string => {
+  const stringValue = String(value);
+  if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
+/**
+ * ヘッダと1行分のデータからCSV文字列を生成
+ */
+export const generateCsvString = (headers: string[], data: (string | number)[]): string => {
+  const headerLine = headers.map(escapeCsvValue).join(',');
+  const dataLine = data.map(escapeCsvValue).join(',');
+  return `${headerLine}\n${dataLine}`;
+};
+
+/**
+ * NASA-RTLX 用 CSV を生成してダウンロード
+ */
+export const downloadNasaRtlxCsv = (
+  participantId: string,
+  condition: string,
+  taskName: string,
+  data: {
+    mentalDemand: number;
+    physicalDemand: number;
+    temporalDemand: number;
+    performance: number;
+    effort: number;
+    frustration: number;
+    overallScore: number;
+  }
+): void => {
+  const headers = [
+    'timestamp',
+    'participant_id',
+    'condition',
+    'task_name',
+    'nasa_mental_demand',
+    'nasa_physical_demand',
+    'nasa_temporal_demand',
+    'nasa_performance',
+    'nasa_effort',
+    'nasa_frustration',
+    'nasa_overall_score'
+  ];
+
+  const timestamp = new Date().toISOString();
+  const rowData = [
+    timestamp,
+    participantId,
+    condition,
+    taskName,
+    data.mentalDemand,
+    data.physicalDemand,
+    data.temporalDemand,
+    data.performance,
+    data.effort,
+    data.frustration,
+    data.overallScore
+  ];
+
+  const csvContent = generateCsvString(headers, rowData);
+  const filename = `${participantId}_${condition}_${taskName}_NASA-RTLX.csv`;
+  downloadCSV(csvContent, filename);
+};
+
+/**
+ * CSQ-VR 用 CSV を生成してダウンロード
+ */
+export const downloadCsqVrCsv = (
+  participantId: string,
+  condition: string,
+  taskName: string,
+  data: {
+    items: Record<string, { score: number; comment: string }>;
+    nauseaScore: number;
+    vestibularScore: number;
+    oculomotorScore: number;
+    totalScore: number;
+  }
+): void => {
+  const headers = [
+    'timestamp',
+    'participant_id',
+    'condition',
+    'task_name',
+    'csqvr_nauseaA_score',
+    'csqvr_nauseaB_score',
+    'csqvr_vestibularA_score',
+    'csqvr_vestibularB_score',
+    'csqvr_oculomotorA_score',
+    'csqvr_oculomotorB_score',
+    'csqvr_nauseaA_comment',
+    'csqvr_nauseaB_comment',
+    'csqvr_vestibularA_comment',
+    'csqvr_vestibularB_comment',
+    'csqvr_oculomotorA_comment',
+    'csqvr_oculomotorB_comment',
+    'csqvr_nausea_score',
+    'csqvr_vestibular_score',
+    'csqvr_oculomotor_score',
+    'csqvr_total_score'
+  ];
+
+  const timestamp = new Date().toISOString();
+  const rowData = [
+    timestamp,
+    participantId,
+    condition,
+    taskName,
+    data.items.nauseaA.score,
+    data.items.nauseaB.score,
+    data.items.vestibularA.score,
+    data.items.vestibularB.score,
+    data.items.oculomotorA.score,
+    data.items.oculomotorB.score,
+    data.items.nauseaA.comment,
+    data.items.nauseaB.comment,
+    data.items.vestibularA.comment,
+    data.items.vestibularB.comment,
+    data.items.oculomotorA.comment,
+    data.items.oculomotorB.comment,
+    data.nauseaScore,
+    data.vestibularScore,
+    data.oculomotorScore,
+    data.totalScore
+  ];
+
+  const csvContent = generateCsvString(headers, rowData);
+  const filename = `${participantId}_${condition}_${taskName}_CSQ-VR.csv`;
+  downloadCSV(csvContent, filename);
+};

@@ -11,6 +11,7 @@ import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { SteeringTrialLog } from '../types';
 import { SteeringTask } from '../components/SteeringTask';
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
+import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
 const TOTAL_TRIALS = 30; // 3条件 × 10試行
 
@@ -30,6 +31,7 @@ const SteeringTaskPage = () => {
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
   const [isTaskCompleted, setIsTaskCompleted] = useState(false);
+  const [isShowingQuestionnaire, setIsShowingQuestionnaire] = useState(false);
   const [steeringLogs, setSteeringLogs] = useState<SteeringTrialLog[]>([]);
 
   // 練習モード管理
@@ -131,8 +133,15 @@ const SteeringTaskPage = () => {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
     }
 
-    // セッション終了してホームに戻る
-    alert('データのダウンロードが完了しました。');
+    // アンケート画面に遷移
+    setIsTaskCompleted(false);
+    setIsShowingQuestionnaire(true);
+  };
+
+  // アンケート完了後の処理
+  const handleQuestionnaireFinished = () => {
+    endSession();
+    router.push('/');
   };
 
   // Steering ログを CSV に変換
@@ -188,6 +197,18 @@ const SteeringTaskPage = () => {
   }
 
   const tiltCondition = (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline';
+
+  // アンケート画面
+  if (isShowingQuestionnaire) {
+    return (
+      <PostTaskQuestionnaires
+        participantId={session.participant_id}
+        condition={session.condition}
+        taskName="Steering"
+        onFinished={handleQuestionnaireFinished}
+      />
+    );
+  }
 
   // タスク完了画面（回転しない）
   if (isTaskCompleted) {

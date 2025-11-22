@@ -12,6 +12,7 @@ import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 import { TypingTask } from '../components/TypingTask';
 import { TypingResultLog } from '../types';
 import { getPassageForParticipant } from '../data/typingPassages';
+import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
 const TypingTaskPage = () => {
   const router = useRouter();
@@ -28,6 +29,7 @@ const TypingTaskPage = () => {
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
+  const [isShowingQuestionnaire, setIsShowingQuestionnaire] = useState(false);
 
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
@@ -113,8 +115,12 @@ const TypingTaskPage = () => {
       downloadWebM(cameraBlob, `${baseFilename}_video.webm`);
     }
 
-    // セッション終了してホームに戻る
-    alert('データのダウンロードが完了しました。');
+    // アンケート画面に遷移
+    setIsShowingQuestionnaire(true);
+  };
+
+  // アンケート完了後の処理
+  const handleQuestionnaireFinished = () => {
     endSession();
     router.push('/');
   };
@@ -172,6 +178,18 @@ const TypingTaskPage = () => {
 
   if (!session || !passage) {
     return <div>読み込み中...</div>;
+  }
+
+  // アンケート画面
+  if (isShowingQuestionnaire) {
+    return (
+      <PostTaskQuestionnaires
+        participantId={session.participant_id}
+        condition={session.condition}
+        taskName="Typing"
+        onFinished={handleQuestionnaireFinished}
+      />
+    );
   }
 
   // タスク実行中は画面全体を回転

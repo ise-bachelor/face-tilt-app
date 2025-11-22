@@ -9,10 +9,11 @@ import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
-import { MinutesEditingTask } from '../components/MinutesEditingTask';
-import { MinutesInputLog, MinutesTypoLog } from '../types';
+import { TypingTask } from '../components/TypingTask';
+import { TypingResultLog } from '../types';
+import { getPassageForParticipant } from '../data/typingPassages';
 
-const MinutesTaskPage = () => {
+const TypingTaskPage = () => {
   const router = useRouter();
   const { stream } = useCamera();
   const { session, endSession } = useExperiment();
@@ -27,8 +28,6 @@ const MinutesTaskPage = () => {
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
-  const [inputLogs, setInputLogs] = useState<MinutesInputLog[]>([]);
-  const [typoLogs, setTypoLogs] = useState<MinutesTypoLog[]>([]);
 
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
@@ -39,6 +38,9 @@ const MinutesTaskPage = () => {
     screenRotation,
     isRecording,
   });
+
+  // 参加者IDに基づいて課題文を取得
+  const passage = session ? getPassageForParticipant(session.participant_id) : null;
 
   // セッションがない場合はホームに戻る
   useEffect(() => {
@@ -75,25 +77,22 @@ const MinutesTaskPage = () => {
     }
   };
 
-  const handleCompleteTask = (inputLogs: MinutesInputLog[], typoLogs: MinutesTypoLog[]) => {
+  const handleCompleteTask = (result: TypingResultLog) => {
     // 録画停止
     stopRecording();
 
     setIsTaskStarted(false);
-    setInputLogs(inputLogs);
-    setTypoLogs(typoLogs);
 
     // データダウンロード
     setTimeout(() => {
-      downloadData(inputLogs, typoLogs);
+      downloadData(result);
     }, 1000);
   };
 
-  const downloadData = (inputLogs: MinutesInputLog[], typoLogs: MinutesTypoLog[]) => {
+  const downloadData = (result: TypingResultLog) => {
     if (!session) return;
 
     const baseFilename = `P${session.participant_id}_${session.condition}_Task1`;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
 
     // 姿勢ログ（CSV）
     const postureCSV = exportLogsAsCSV();
@@ -101,13 +100,13 @@ const MinutesTaskPage = () => {
       downloadCSV(postureCSV, `${baseFilename}_pose.csv`);
     }
 
-    // 欠落文入力ログ（CSV）
-    const inputLogCSV = generateInputLogCSV(inputLogs);
-    downloadCSV(inputLogCSV, `${baseFilename}_input.csv`);
+    // タイピング結果ログ（CSV）
+    const typingResultCSV = generateTypingResultCSV(result);
+    downloadCSV(typingResultCSV, `${baseFilename}_typing_result.csv`);
 
-    // 誤字指摘ログ（CSV）
-    const typoLogCSV = generateTypoLogCSV(typoLogs);
-    downloadCSV(typoLogCSV, `${baseFilename}_typo.csv`);
+    // キー入力ログ（CSV）
+    const keyLogCSV = generateKeyLogCSV(result);
+    downloadCSV(keyLogCSV, `${baseFilename}_key_log.csv`);
 
     // Webカメラ録画（WebM）
     if (cameraBlob) {
@@ -120,47 +119,58 @@ const MinutesTaskPage = () => {
     router.push('/');
   };
 
-  const generateInputLogCSV = (logs: MinutesInputLog[]): string => {
+  const generateTypingResultCSV = (result: TypingResultLog): string => {
     const headers = [
-      'sentenceId',
-      'T_highlight_pressed',
-      'T_typing_start',
-      'T_typing_end',
-      'search_time',
-      'input_time',
-      'need_fix',
-      'fix_count'
+      'participant_id',
+      'condition',
+      'passage_id',
+      'final_text',
+      'final_time_ms'
     ].join(',');
 
-    const rows = logs.map(log => [
-      log.sentenceId,
-      log.T_highlight_pressed,
-      log.T_typing_start,
-      log.T_typing_end,
-      log.search_time,
-      log.input_time,
-      log.need_fix,
-      log.fix_count
-    ].join(','));
+    // テキスト内のカンマと改行をエスケープ
+    const escapedText = `"${result.final_text.replace(/"/g, '""')}"`;
 
-    return [headers, ...rows].join('\n');
+    const row = [
+      result.participant_id,
+      result.condition,
+      result.passage_id,
+      escapedText,
+      result.final_time_ms
+    ].join(',');
+
+    return [headers, row].join('\n');
   };
 
-  const generateTypoLogCSV = (logs: MinutesTypoLog[]): string => {
-    const headers = ['timestamp', 'error_id', 'corrected'].join(',');
+  const generateKeyLogCSV = (result: TypingResultLog): string => {
+    const headers = [
+      'participant_id',
+      'condition',
+      'passage_id',
+      'key',
+      'timestamp_ms',
+      'is_backspace'
+    ].join(',');
 
-    const rows = logs.map(log => [
-      log.timestamp,
-      log.error_id,
-      log.corrected
-    ].join(','));
+    const rows = result.key_logs.map(log => {
+      // キー名内のカンマをエスケープ
+      const escapedKey = log.key.includes(',') ? `"${log.key}"` : log.key;
+      return [
+        result.participant_id,
+        result.condition,
+        result.passage_id,
+        escapedKey,
+        log.timestamp_ms,
+        log.is_backspace
+      ].join(',');
+    });
 
     return [headers, ...rows].join('\n');
   };
 
   const containerStyle = getContainerStyle(rotation);
 
-  if (!session) {
+  if (!session || !passage) {
     return <div>読み込み中...</div>;
   }
 
@@ -177,24 +187,17 @@ const MinutesTaskPage = () => {
       {!isTaskStarted ? (
         // 説明画面（回転しない）
         <TaskInstructionScreen
-          title="議事録編集タスク"
+          title="タイピングタスク"
           description={
             <>
-              画面左側のお手本と同じになるように、右側の議事録を編集してください。
+              左画面に表示される課題文を見ながら、右画面のテキストエリアに同じ文章を入力してください。
               <br />
-              ・「次の文をハイライト」ボタンで、入力すべき文が黄色でハイライト表示されます
               <br />
-              ・右側の欠落箇所をクリックして、左側と同じ文を入力してください
+              ・課題文はコピー＆ペーストできません
               <br />
-              ・「入力確認」ボタンで、入力の正誤判定を行います
+              ・正確に入力することを心がけてください
               <br />
-              ・正解ならお手本が緑色でハイライトされます
-              <br />
-              ・不正解なら内容を修正してください
-              <br />
-              ・誤字を見つけたらクリックして修正してください
-              <br />
-              ・まず練習タスク（1文）を行い、その後本番タスク（8文）を実施します
+              ・入力が完了したら「完了」ボタンを押してください
             </>
           }
           onStart={handleStartTask}
@@ -202,9 +205,10 @@ const MinutesTaskPage = () => {
         />
       ) : (
         // タスク画面（回転する）
-        <MinutesEditingTask
-          condition={session.condition}
+        <TypingTask
+          passage={passage}
           participantId={session.participant_id}
+          condition={session.condition}
           onComplete={handleCompleteTask}
         />
       )}
@@ -221,4 +225,4 @@ const pageStyle: React.CSSProperties = {
   justifyContent: 'center',
 };
 
-export default MinutesTaskPage;
+export default TypingTaskPage;

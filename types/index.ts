@@ -26,17 +26,29 @@ export const TYPING_MAPPINGS: Record<TypingTaskMapping, Record<ExperimentConditi
   T3: { default: 'passage3', rotate1: 'passage1', rotate2: 'passage2' },
 };
 
-// Fittsタスクの難易度順序
-export type FittsDifficultyOrder = 'F1' | 'F2' | 'F3';
+// Fittsタスクの難易度順序（参加者グループ）
+export type FittsDifficultyOrder = 'G1' | 'G2' | 'G3';
 
-// Fitts難易度順序の定義
-// F1: low → mid → high
-// F2: mid → high → low
-// F3: high → low → mid
-export const FITTS_DIFFICULTY_ORDERS: Record<FittsDifficultyOrder, ('low' | 'mid' | 'high')[]> = {
-  F1: ['low', 'mid', 'high'],
-  F2: ['mid', 'high', 'low'],
-  F3: ['high', 'low', 'mid'],
+// Fitts難易度順序の定義（グループ × 条件）
+// G1 (ID % 3 == 1): D→LMH, R1→MHL, R2→HLM
+// G2 (ID % 3 == 2): D→MHL, R1→HLM, R2→LMH
+// G3 (ID % 3 == 0): D→HLM, R1→LMH, R2→MHL
+export const FITTS_DIFFICULTY_ORDERS: Record<FittsDifficultyOrder, Record<ExperimentCondition, ('low' | 'mid' | 'high')[]>> = {
+  G1: {
+    default: ['low', 'mid', 'high'],
+    rotate1: ['mid', 'high', 'low'],
+    rotate2: ['high', 'low', 'mid'],
+  },
+  G2: {
+    default: ['mid', 'high', 'low'],
+    rotate1: ['high', 'low', 'mid'],
+    rotate2: ['low', 'mid', 'high'],
+  },
+  G3: {
+    default: ['high', 'low', 'mid'],
+    rotate1: ['low', 'mid', 'high'],
+    rotate2: ['mid', 'high', 'low'],
+  },
 };
 
 // 頭部姿勢（基準との差分）

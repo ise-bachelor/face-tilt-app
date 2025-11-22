@@ -81,9 +81,10 @@ const FittsTaskPage = () => {
     isRecording,
   });
 
-  // セッションの設定に基づいて難易度レベルを取得
-  const difficultyOrder = session?.fittsDifficultyOrder || 'F1';
-  const DIFFICULTY_LEVELS = getDifficultyLevels(FITTS_DIFFICULTY_ORDERS[difficultyOrder]);
+  // セッションの設定に基づいて難易度レベルを取得（グループ × 条件）
+  const group = session?.fittsDifficultyOrder || 'G1';
+  const condition = session?.condition || 'default';
+  const DIFFICULTY_LEVELS = getDifficultyLevels(FITTS_DIFFICULTY_ORDERS[group][condition]);
 
   const currentLevel = DIFFICULTY_LEVELS[currentLevelIndex];
   const totalTrials = currentLevelIndex * TRIALS_PER_LEVEL + currentTrialInLevel;

@@ -21,12 +21,15 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
     const num = numMatch ? parseInt(numMatch[0], 10) : id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const remainder = num % 3;
 
+    // タイピング: 余り0→T1, 1→T2, 2→T3
     const typingMappings: TypingTaskMapping[] = ['T1', 'T2', 'T3'];
-    const fittsMappings: FittsDifficultyOrder[] = ['F1', 'F2', 'F3'];
+
+    // Fitts: 余り1→G1, 2→G2, 0→G3
+    const fittsGroups: FittsDifficultyOrder[] = ['G3', 'G1', 'G2'];
 
     return {
       typing: typingMappings[remainder],
-      fitts: fittsMappings[remainder],
+      fitts: fittsGroups[remainder],
     };
   };
 

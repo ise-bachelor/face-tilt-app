@@ -110,12 +110,13 @@ export interface FittsTrialLog {
   levelId: 'low' | 'mid' | 'high';
   D: number;  // Distance (radius)
   W: number;  // Width (target size)
-  startTime: number;
-  endTime: number;
-  MT: number;  // Movement Time
+  startTime: number;  // 秒単位（小数第4位まで）
+  endTime: number;    // 秒単位（小数第4位まで）
+  MT: number;  // Movement Time（秒単位）
   targetIndex: number;
   clickedIndex: number;
   isError: boolean;
+  distanceFromCenter: number;  // クリック位置からターゲット中心までの距離（ピクセル）
 }
 
 // ステアリングタスク: 軌跡ログ

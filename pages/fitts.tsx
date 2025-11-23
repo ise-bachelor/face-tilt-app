@@ -121,7 +121,7 @@ const FittsTaskPage = () => {
   const initializeFirstTarget = () => {
     const randomIndex = Math.floor(Math.random() * NUM_TARGETS);
     setCurrentTargetIndex(randomIndex);
-    setTrialStartTime(Date.now());
+    setTrialStartTime(Date.now() / 1000); // 秒単位で保存
   };
 
   // 対角交互の次のターゲットを計算
@@ -142,16 +142,33 @@ const FittsTaskPage = () => {
     }
   };
 
-  // ターゲットクリック処理
-  const handleTargetClick = (clickedIndex: number) => {
+  // クリック位置からターゲット中心までの距離を計算
+  const calculateDistanceFromCenter = (clickX: number, clickY: number, targetIndex: number): number => {
+    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
+    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
+    const targetPos = getTargetPosition(targetIndex, centerX, centerY);
+
+    const dx = clickX - targetPos.x;
+    const dy = clickY - targetPos.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // ターゲットクリック処理（クリック座標を受け取る）
+  const handleTargetClick = (clickedIndex: number, clickX: number, clickY: number) => {
     if (!session || currentTargetIndex === null) return;
 
-    const endTime = Date.now();
+    const endTime = Date.now() / 1000; // 秒単位に変換
     const startTime = trialStartTime;
     const MT = endTime - startTime;
 
-    // エラー判定（正しいターゲットをクリックしたか）
-    const isError = clickedIndex !== currentTargetIndex;
+    // クリック位置からターゲット中心までの距離を計算
+    const distanceFromCenter = calculateDistanceFromCenter(clickX, clickY, currentTargetIndex);
+
+    // ターゲット半径（W/2）より距離が大きい場合はターゲット外クリック
+    const isOutsideTarget = distanceFromCenter > (currentLevel.W / 2);
+
+    // エラー判定（正しいターゲットをクリックしたか、またはターゲット外をクリックしたか）
+    const isError = clickedIndex !== currentTargetIndex || isOutsideTarget;
 
     // 練習モードでない場合のみログを記録
     if (!isPractice) {
@@ -162,12 +179,13 @@ const FittsTaskPage = () => {
         levelId: currentLevel.id,
         D: currentLevel.R * 2, // 直径 = 半径 × 2
         W: currentLevel.W,
-        startTime,
-        endTime,
-        MT,
+        startTime: Number(startTime.toFixed(4)),
+        endTime: Number(endTime.toFixed(4)),
+        MT: Number(MT.toFixed(4)),
         targetIndex: currentTargetIndex,
         clickedIndex,
         isError,
+        distanceFromCenter: Number(distanceFromCenter.toFixed(4)),
       };
 
       setTrialLogs(prev => [...prev, log]);
@@ -187,7 +205,7 @@ const FittsTaskPage = () => {
           setPracticeRound(nextRound);
           const nextIndex = getNextTargetIndex(currentTargetIndex);
           setCurrentTargetIndex(nextIndex);
-          setTrialStartTime(Date.now());
+          setTrialStartTime(Date.now() / 1000); // 秒単位で保存
         }
       } else {
         // 本番モード
@@ -213,7 +231,7 @@ const FittsTaskPage = () => {
           setCurrentTrialInLevel(newTrialInLevel);
           const nextIndex = getNextTargetIndex(currentTargetIndex);
           setCurrentTargetIndex(nextIndex);
-          setTrialStartTime(Date.now());
+          setTrialStartTime(Date.now() / 1000); // 秒単位で保存
         }
       }
     }
@@ -300,6 +318,7 @@ const FittsTaskPage = () => {
       'targetIndex',
       'clickedIndex',
       'isError',
+      'distanceFromCenter',
     ];
 
     const rows = trialLogs.map(log =>
@@ -316,6 +335,7 @@ const FittsTaskPage = () => {
         log.targetIndex,
         log.clickedIndex,
         log.isError,
+        log.distanceFromCenter,
       ].join(',')
     );
 
@@ -422,7 +442,7 @@ const FittsTaskPage = () => {
               return (
                 <div
                   key={index}
-                  onClick={() => handleTargetClick(index)}
+                  onClick={(e) => handleTargetClick(index, e.clientX, e.clientY)}
                   style={{
                     ...targetStyle,
                     left: pos.x - currentLevel.W / 2,

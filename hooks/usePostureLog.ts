@@ -6,6 +6,7 @@ interface UsePostureLogProps {
   headPose: HeadPose;
   headTranslation: HeadTranslation;
   screenRotation: ScreenRotation;
+  latency: number;
   isRecording: boolean;
 }
 
@@ -14,6 +15,7 @@ export const usePostureLog = ({
   headPose,
   headTranslation,
   screenRotation,
+  latency,
   isRecording,
 }: UsePostureLogProps) => {
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
@@ -40,6 +42,8 @@ export const usePostureLog = ({
           Screen_Pitch: screenRotation.pitch,
           Screen_Yaw: screenRotation.yaw,
           Screen_Roll: screenRotation.roll,
+          // 処理レイテンシ
+          Latency_ms: latency,
         };
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
@@ -51,7 +55,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, headTranslation, screenRotation]);
+  }, [isRecording, session, headPose, headTranslation, screenRotation, latency]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -77,6 +81,7 @@ export const usePostureLog = ({
       'Screen_Pitch',
       'Screen_Yaw',
       'Screen_Roll',
+      'Latency_ms',
     ];
 
     // CSVボディ
@@ -95,6 +100,7 @@ export const usePostureLog = ({
         log.Screen_Pitch.toFixed(4),
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),
+        log.Latency_ms.toFixed(2),
       ].join(',')
     );
 

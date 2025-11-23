@@ -26,7 +26,7 @@ export const usePostureLog = ({
       // 4Hz = 250ms間隔でログを記録
       intervalIdRef.current = setInterval(() => {
         const logEntry: PostureLogEntry = {
-          timestamp: Date.now(),
+          timestamp: Number((Date.now() / 1000).toFixed(4)), // 秒単位（小数第4位まで）
           participant_id: session.participant_id,
           condition: session.condition,
           task_name: session.task_name,

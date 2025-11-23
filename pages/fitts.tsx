@@ -154,7 +154,8 @@ const FittsTaskPage = () => {
   };
 
   // ターゲットクリック処理（クリック座標を受け取る）
-  const handleTargetClick = (clickedIndex: number, clickX: number, clickY: number) => {
+  const handleTargetClick = (clickedIndex: number, clickX: number, clickY: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // 背景クリックイベントへの伝播を防ぐ
     if (!session || currentTargetIndex === null) return;
 
     const endTime = Date.now() / 1000; // 秒単位に変換
@@ -234,6 +235,42 @@ const FittsTaskPage = () => {
           setTrialStartTime(Date.now() / 1000); // 秒単位で保存
         }
       }
+    }
+  };
+
+  // 背景クリック処理（ターゲット以外の場所をクリックした場合）
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (!session || currentTargetIndex === null) return;
+
+    const clickX = e.clientX;
+    const clickY = e.clientY;
+
+    const endTime = Date.now() / 1000; // 秒単位に変換
+    const startTime = trialStartTime;
+    const MT = endTime - startTime;
+
+    // クリック位置からターゲット中心までの距離を計算
+    const distanceFromCenter = calculateDistanceFromCenter(clickX, clickY, currentTargetIndex);
+
+    // 練習モードでない場合のみログを記録
+    if (!isPractice) {
+      const log: FittsTrialLog = {
+        participantId: session.participant_id,
+        tiltCondition: (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline',
+        trialId: totalTrials,
+        levelId: currentLevel.id,
+        D: currentLevel.R * 2, // 直径 = 半径 × 2
+        W: currentLevel.W,
+        startTime: Number(startTime.toFixed(4)),
+        endTime: Number(endTime.toFixed(4)),
+        MT: Number(MT.toFixed(4)),
+        targetIndex: currentTargetIndex,
+        clickedIndex: -1, // 背景クリックは-1として記録
+        isError: true, // 背景クリックは常にエラー
+        distanceFromCenter: Number(distanceFromCenter.toFixed(4)),
+      };
+
+      setTrialLogs(prev => [...prev, log]);
     }
   };
 
@@ -432,7 +469,7 @@ const FittsTaskPage = () => {
           </div>
 
           {/* ターゲット表示エリア */}
-          <div style={targetAreaStyle}>
+          <div style={targetAreaStyle} onClick={handleBackgroundClick}>
             {Array.from({ length: NUM_TARGETS }).map((_, index) => {
               const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
               const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
@@ -442,7 +479,7 @@ const FittsTaskPage = () => {
               return (
                 <div
                   key={index}
-                  onClick={(e) => handleTargetClick(index, e.clientX, e.clientY)}
+                  onClick={(e) => handleTargetClick(index, e.clientX, e.clientY, e)}
                   style={{
                     ...targetStyle,
                     left: pos.x - currentLevel.W / 2,

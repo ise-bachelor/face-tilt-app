@@ -86,10 +86,6 @@ export interface PostureLogEntry {
   Head_Tx: number;
   Head_Ty: number;
   Head_Tz: number;
-  // 画面回転（カルマンフィルタ前）
-  Screen_Pitch_Raw: number;
-  Screen_Yaw_Raw: number;
-  Screen_Roll_Raw: number;
   // 画面回転（カルマンフィルタ後）
   Screen_Pitch: number;
   Screen_Yaw: number;

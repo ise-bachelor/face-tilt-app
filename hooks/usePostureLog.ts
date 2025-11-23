@@ -5,7 +5,6 @@ interface UsePostureLogProps {
   session: ExperimentSession | null;
   headPose: HeadPose;
   headTranslation: HeadTranslation;
-  rawScreenRotation: ScreenRotation;
   screenRotation: ScreenRotation;
   isRecording: boolean;
 }
@@ -14,7 +13,6 @@ export const usePostureLog = ({
   session,
   headPose,
   headTranslation,
-  rawScreenRotation,
   screenRotation,
   isRecording,
 }: UsePostureLogProps) => {
@@ -38,10 +36,6 @@ export const usePostureLog = ({
           Head_Tx: headTranslation.tx,
           Head_Ty: headTranslation.ty,
           Head_Tz: headTranslation.tz,
-          // 画面回転（カルマンフィルタ前）
-          Screen_Pitch_Raw: rawScreenRotation.pitch,
-          Screen_Yaw_Raw: rawScreenRotation.yaw,
-          Screen_Roll_Raw: rawScreenRotation.roll,
           // 画面回転（カルマンフィルタ後）
           Screen_Pitch: screenRotation.pitch,
           Screen_Yaw: screenRotation.yaw,
@@ -57,7 +51,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, headTranslation, rawScreenRotation, screenRotation]);
+  }, [isRecording, session, headPose, headTranslation, screenRotation]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -80,9 +74,6 @@ export const usePostureLog = ({
       'Head_Tx',
       'Head_Ty',
       'Head_Tz',
-      'Screen_Pitch_Raw',
-      'Screen_Yaw_Raw',
-      'Screen_Roll_Raw',
       'Screen_Pitch',
       'Screen_Yaw',
       'Screen_Roll',
@@ -101,9 +92,6 @@ export const usePostureLog = ({
         log.Head_Tx.toFixed(4),
         log.Head_Ty.toFixed(4),
         log.Head_Tz.toFixed(4),
-        log.Screen_Pitch_Raw.toFixed(4),
-        log.Screen_Yaw_Raw.toFixed(4),
-        log.Screen_Roll_Raw.toFixed(4),
         log.Screen_Pitch.toFixed(4),
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),

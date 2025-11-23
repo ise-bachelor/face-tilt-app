@@ -45,11 +45,6 @@ export const useFaceTracking = ({
     yaw: 0,
     roll: 0,
   });
-  const [rawScreenRotation, setRawScreenRotation] = useState<ScreenRotation>({
-    pitch: 0,
-    yaw: 0,
-    roll: 0,
-  });
   const [headTranslation, setHeadTranslation] = useState<HeadTranslation>({
     tx: 0,
     ty: 0,
@@ -174,17 +169,6 @@ export const useFaceTracking = ({
                 setRotation(finalRotation);
               }
 
-              // パフォーマンス計測（特徴点取得から画面傾き計算完了まで）
-              const totalTime = performance.now() - detectionStartTimeRef.current;
-              console.log(`特徴点取得〜画面傾き計算: ${totalTime.toFixed(2)}ms`);
-
-              // 画面回転の値を記録（カルマンフィルタ前）
-              setRawScreenRotation({
-                pitch: rawRotation.rotateX,
-                yaw: rawRotation.rotateY,
-                roll: rawRotation.rotateZ,
-              });
-
               // 画面回転の値を記録（カルマンフィルタ後）
               setScreenRotation({
                 pitch: finalRotation.rotateX,
@@ -236,7 +220,6 @@ export const useFaceTracking = ({
     rotation,
     headPose,
     headTranslation,
-    rawScreenRotation,
     screenRotation,
     isStarted,
     handleStart,

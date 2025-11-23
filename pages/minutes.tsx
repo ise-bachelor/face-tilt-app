@@ -21,7 +21,7 @@ const TypingTaskPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { detector, isModelLoaded } = useFaceDetector();
-  const { rotation, headPose, headTranslation, screenRotation, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, screenRotation, latency, handleStart } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
@@ -39,6 +39,7 @@ const TypingTaskPage = () => {
     headPose,
     headTranslation,
     screenRotation,
+    latency,
     isRecording,
   });
 

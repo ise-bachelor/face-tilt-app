@@ -51,6 +51,7 @@ export const useFaceTracking = ({
     tz: 0,
   });
   const [isStarted, setIsStarted] = useState(false);
+  const [latency, setLatency] = useState(0);
 
   const baseRotationRef = useRef<Rotation>({
     rotateX: 0,
@@ -175,6 +176,11 @@ export const useFaceTracking = ({
                 yaw: finalRotation.rotateY,
                 roll: finalRotation.rotateZ,
               });
+
+              // レイテンシを計測してコンソールに出力
+              const processingTime = performance.now() - detectionStartTimeRef.current;
+              setLatency(processingTime);
+              console.log(`処理レイテンシ: ${processingTime.toFixed(2)}ms`);
             }
           }
         } catch (error) {
@@ -221,6 +227,7 @@ export const useFaceTracking = ({
     headPose,
     headTranslation,
     screenRotation,
+    latency,
     isStarted,
     handleStart,
     handleStop

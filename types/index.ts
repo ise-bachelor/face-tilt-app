@@ -90,6 +90,8 @@ export interface PostureLogEntry {
   Screen_Pitch: number;
   Screen_Yaw: number;
   Screen_Roll: number;
+  // 処理レイテンシ（ms）
+  Latency_ms: number;
 }
 
 // フィッツタスク: クリックログ（旧型 - 後方互換性のため残す）

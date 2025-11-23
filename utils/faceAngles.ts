@@ -20,8 +20,6 @@ export const calculateFaceAnglesWithTranslation = (keypoints: any[]): FaceAngles
   const noseTip = keypoints[1];        // 鼻先
   const leftEye = keypoints[33];       // 左目
   const rightEye = keypoints[263];     // 右目
-  const leftMouth = keypoints[61];     // 口の左端
-  const rightMouth = keypoints[291];   // 口の右端
   const chin = keypoints[152];         // あご
   const forehead = keypoints[10];      // 額
 

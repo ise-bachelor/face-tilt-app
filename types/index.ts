@@ -94,8 +94,6 @@ export interface PostureLogEntry {
   Screen_Pitch: number;
   Screen_Yaw: number;
   Screen_Roll: number;
-  audio_current_time?: number;  // 議事録タスクのみ
-  audio_is_playing?: boolean;    // 議事録タスクのみ
 }
 
 // フィッツタスク: クリックログ（旧型 - 後方互換性のため残す）
@@ -185,26 +183,6 @@ export interface ExperimentSession {
   participantInfo?: ParticipantInfo;  // 参加者情報を追加
   typingMapping?: TypingTaskMapping;  // タイピングタスクのマッピング
   fittsDifficultyOrder?: FittsDifficultyOrder;  // Fitts難易度順序
-}
-
-// 議事録編集タスク: 欠落文入力ログ（後方互換性のため残す）
-export interface MinutesInputLog {
-  sentenceId: string;
-  T_highlight_pressed: number;
-  T_typing_start: number;
-  T_typing_end: number;
-  search_time: number;  // T_typing_start - T_highlight_pressed
-  input_time: number;   // T_highlight_pressed(next) - T_typing_start
-  modal_time: number;   // モーダル表示時間
-  need_fix: boolean;    // ハイライト押下時に入力が正しくなかったか
-  fix_count: number;    // 修正を促された回数
-}
-
-// 議事録編集タスク: 誤字指摘ログ（後方互換性のため残す）
-export interface MinutesTypoLog {
-  timestamp: number;
-  error_id: string;
-  corrected: boolean;
 }
 
 // タイピングタスク: キー入力ログ

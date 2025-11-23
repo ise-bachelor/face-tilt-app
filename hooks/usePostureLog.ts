@@ -7,8 +7,6 @@ interface UsePostureLogProps {
   headTranslation: HeadTranslation;
   rawScreenRotation: ScreenRotation;
   screenRotation: ScreenRotation;
-  audioCurrentTime?: number;
-  audioIsPlaying?: boolean;
   isRecording: boolean;
 }
 
@@ -18,8 +16,6 @@ export const usePostureLog = ({
   headTranslation,
   rawScreenRotation,
   screenRotation,
-  audioCurrentTime,
-  audioIsPlaying,
   isRecording,
 }: UsePostureLogProps) => {
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
@@ -50,8 +46,6 @@ export const usePostureLog = ({
           Screen_Pitch: screenRotation.pitch,
           Screen_Yaw: screenRotation.yaw,
           Screen_Roll: screenRotation.roll,
-          audio_current_time: audioCurrentTime,
-          audio_is_playing: audioIsPlaying,
         };
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
@@ -63,7 +57,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, headTranslation, rawScreenRotation, screenRotation, audioCurrentTime, audioIsPlaying]);
+  }, [isRecording, session, headPose, headTranslation, rawScreenRotation, screenRotation]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -92,8 +86,6 @@ export const usePostureLog = ({
       'Screen_Pitch',
       'Screen_Yaw',
       'Screen_Roll',
-      'audio_current_time',
-      'audio_is_playing',
     ];
 
     // CSVボディ
@@ -115,8 +107,6 @@ export const usePostureLog = ({
         log.Screen_Pitch.toFixed(4),
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),
-        log.audio_current_time?.toFixed(2) || '',
-        log.audio_is_playing !== undefined ? log.audio_is_playing : '',
       ].join(',')
     );
 

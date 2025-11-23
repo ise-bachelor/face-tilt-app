@@ -2,6 +2,7 @@ import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import { CameraProvider } from '../contexts/CameraContext';
 import { ExperimentProvider } from '../contexts/ExperimentContext';
+import { FaceDetectorProvider } from '../contexts/FaceDetectorContext';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -14,9 +15,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <CameraProvider>
-      <ExperimentProvider>
-        <Component {...pageProps} />
-      </ExperimentProvider>
+      <FaceDetectorProvider>
+        <ExperimentProvider>
+          <Component {...pageProps} />
+        </ExperimentProvider>
+      </FaceDetectorProvider>
     </CameraProvider>
   );
 }

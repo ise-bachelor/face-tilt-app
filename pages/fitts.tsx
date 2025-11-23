@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useCamera } from '../contexts/CameraContext';
 import { useExperiment } from '../contexts/ExperimentContext';
-import { useFaceDetector } from '../hooks/useFaceDetector';
+import { useFaceDetector } from '../contexts/FaceDetectorContext';
 import { useFaceTracking } from '../hooks/useFaceTracking';
 import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
@@ -55,7 +55,7 @@ const FittsTaskPage = () => {
   const { session, endSession } = useExperiment();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { detector, isModelLoaded } = useFaceDetector(true);
+  const { detector, isModelLoaded } = useFaceDetector();
   const { rotation, headPose, headTranslation, screenRotation, handleStart } = useFaceTracking({
     videoRef,
     detector,

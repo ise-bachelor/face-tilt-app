@@ -201,7 +201,6 @@ export interface SteeringTrialLog {
   max_abs_lateral_deviation_px: number;
 
   // 7. 画面の傾き
-  tilt_mode: string;  // NoTilt / Tilt1 / Tilt2
   screen_roll_deg: number;
   screen_pitch_deg: number;
   screen_yaw_deg: number;

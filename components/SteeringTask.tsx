@@ -391,7 +391,6 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
           path_efficiency,
           mean_abs_lateral_deviation_px,
           max_abs_lateral_deviation_px,
-          tilt_mode: condition,
           screen_roll_deg: screenRotation.roll,
           screen_pitch_deg: screenRotation.pitch,
           screen_yaw_deg: screenRotation.yaw,

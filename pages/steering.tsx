@@ -203,7 +203,6 @@ const SteeringTaskPage = () => {
       'mean_abs_lateral_deviation_px',
       'max_abs_lateral_deviation_px',
       // 傾き
-      'tilt_mode',
       'screen_roll_deg',
       'screen_pitch_deg',
       'screen_yaw_deg',
@@ -230,7 +229,6 @@ const SteeringTaskPage = () => {
         log.path_efficiency.toFixed(4),
         log.mean_abs_lateral_deviation_px.toFixed(4),
         log.max_abs_lateral_deviation_px.toFixed(4),
-        log.tilt_mode,
         log.screen_roll_deg.toFixed(4),
         log.screen_pitch_deg.toFixed(4),
         log.screen_yaw_deg.toFixed(4),

@@ -79,6 +79,9 @@ const FittsTaskPage = () => {
   const [showPracticeCompleteButton, setShowPracticeCompleteButton] = useState(false);
   const PRACTICE_ROUNDS = 5;
 
+  // 前のターゲット位置（スタート位置）を追跡
+  const [previousTargetIndex, setPreviousTargetIndex] = useState<number | null>(null);
+
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
   const { logs, exportLogsAsCSV } = usePostureLog({
     session,
@@ -122,7 +125,8 @@ const FittsTaskPage = () => {
   const initializeFirstTarget = () => {
     const randomIndex = Math.floor(Math.random() * NUM_TARGETS);
     setCurrentTargetIndex(randomIndex);
-    setTrialStartTime(Date.now() / 1000); // 秒単位で保存
+    setPreviousTargetIndex(null); // 最初の試行はスタート位置なし
+    setTrialStartTime(Date.now()); // ミリ秒単位で保存
   };
 
   // 対角交互の次のターゲットを計算
@@ -159,9 +163,8 @@ const FittsTaskPage = () => {
     e.stopPropagation(); // 背景クリックイベントへの伝播を防ぐ
     if (!session || currentTargetIndex === null) return;
 
-    const endTime = Date.now() / 1000; // 秒単位に変換
-    const startTime = trialStartTime;
-    const MT = endTime - startTime;
+    const clickTimeMs = Date.now(); // ミリ秒単位
+    const startTimeMs = trialStartTime;
 
     // クリック位置からターゲット中心までの距離を計算
     const distanceFromCenter = calculateDistanceFromCenter(clickX, clickY, currentTargetIndex);
@@ -169,32 +172,26 @@ const FittsTaskPage = () => {
     // ターゲット半径（W/2）より距離が大きい場合はターゲット外クリック
     const isOutsideTarget = distanceFromCenter > (currentLevel.W / 2);
 
-    // エラー判定（正しいターゲットをクリックしたか、またはターゲット外をクリックしたか）
-    const isError = clickedIndex !== currentTargetIndex || isOutsideTarget;
+    // ヒット判定（ターゲット内に入ったかどうか）
+    const isHit = clickedIndex === currentTargetIndex && !isOutsideTarget;
 
     // 練習モードでない場合のみログを記録
     if (!isPractice) {
-      const log: FittsTrialLog = {
-        participantId: session.participant_id,
-        tiltCondition: (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline',
-        trialId: totalTrials,
-        levelId: currentLevel.id,
-        D: currentLevel.R * 2, // 直径 = 半径 × 2
-        W: currentLevel.W,
-        startTime: Number(startTime.toFixed(4)),
-        endTime: Number(endTime.toFixed(4)),
-        MT: Number(MT.toFixed(4)),
-        targetIndex: currentTargetIndex,
-        clickedIndex,
-        isError,
-        distanceFromCenter: Number(distanceFromCenter.toFixed(4)),
-      };
+      const log = createTrialLog(
+        clickX,
+        clickY,
+        clickTimeMs,
+        startTimeMs,
+        currentTargetIndex,
+        previousTargetIndex,
+        isHit
+      );
 
       setTrialLogs(prev => [...prev, log]);
     }
 
     // 正しいターゲットがクリックされた場合のみ次へ進む
-    if (!isError) {
+    if (isHit) {
       // 練習モードの場合
       if (isPractice) {
         const nextRound = practiceRound + 1;
@@ -206,8 +203,9 @@ const FittsTaskPage = () => {
           // 次の練習ラウンド
           setPracticeRound(nextRound);
           const nextIndex = getNextTargetIndex(currentTargetIndex);
+          setPreviousTargetIndex(currentTargetIndex);
           setCurrentTargetIndex(nextIndex);
-          setTrialStartTime(Date.now() / 1000); // 秒単位で保存
+          setTrialStartTime(Date.now()); // ミリ秒単位で保存
         }
       } else {
         // 本番モード
@@ -232,8 +230,9 @@ const FittsTaskPage = () => {
           // 同じレベルの次のトライアルへ
           setCurrentTrialInLevel(newTrialInLevel);
           const nextIndex = getNextTargetIndex(currentTargetIndex);
+          setPreviousTargetIndex(currentTargetIndex);
           setCurrentTargetIndex(nextIndex);
-          setTrialStartTime(Date.now() / 1000); // 秒単位で保存
+          setTrialStartTime(Date.now()); // ミリ秒単位で保存
         }
       }
     }
@@ -246,30 +245,20 @@ const FittsTaskPage = () => {
     const clickX = e.clientX;
     const clickY = e.clientY;
 
-    const endTime = Date.now() / 1000; // 秒単位に変換
-    const startTime = trialStartTime;
-    const MT = endTime - startTime;
-
-    // クリック位置からターゲット中心までの距離を計算
-    const distanceFromCenter = calculateDistanceFromCenter(clickX, clickY, currentTargetIndex);
+    const clickTimeMs = Date.now(); // ミリ秒単位
+    const startTimeMs = trialStartTime;
 
     // 練習モードでない場合のみログを記録
     if (!isPractice) {
-      const log: FittsTrialLog = {
-        participantId: session.participant_id,
-        tiltCondition: (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline',
-        trialId: totalTrials,
-        levelId: currentLevel.id,
-        D: currentLevel.R * 2, // 直径 = 半径 × 2
-        W: currentLevel.W,
-        startTime: Number(startTime.toFixed(4)),
-        endTime: Number(endTime.toFixed(4)),
-        MT: Number(MT.toFixed(4)),
-        targetIndex: currentTargetIndex,
-        clickedIndex: -1, // 背景クリックは-1として記録
-        isError: true, // 背景クリックは常にエラー
-        distanceFromCenter: Number(distanceFromCenter.toFixed(4)),
-      };
+      const log = createTrialLog(
+        clickX,
+        clickY,
+        clickTimeMs,
+        startTimeMs,
+        currentTargetIndex,
+        previousTargetIndex,
+        false // 背景クリックは常にミス
+      );
 
       setTrialLogs(prev => [...prev, log]);
     }
@@ -344,36 +333,82 @@ const FittsTaskPage = () => {
     if (trialLogs.length === 0) return '';
 
     const headers = [
-      'participantId',
-      'tiltCondition',
-      'trialId',
-      'levelId',
-      'D',
-      'W',
-      'startTime',
-      'endTime',
-      'MT',
-      'targetIndex',
-      'clickedIndex',
-      'isError',
-      'distanceFromCenter',
+      // 1. 試行の基本情報
+      'participant_id',
+      'condition',
+      'block_index',
+      'trial_index',
+      // 2. ターゲット・タスク条件
+      'amplitude_px',
+      'target_width_px',
+      'target_direction_deg',
+      'start_center_x',
+      'start_center_y',
+      'target_center_x',
+      'target_center_y',
+      'id_theoretical',
+      // 3. 時間情報
+      'trial_start_time_ms',
+      'click_time_ms',
+      'movement_time_ms',
+      // 4. クリック位置と誤差
+      'click_x',
+      'click_y',
+      'hit',
+      'dx_px',
+      'dy_px',
+      'radial_error_px',
+      'error_angle_world_deg',
+      'e_along_px',
+      'e_cross_px',
+      'error_angle_relative_deg',
+      // 5. 画面の傾き・頭部角度
+      'screen_roll_deg',
+      'screen_pitch_deg',
+      'screen_yaw_deg',
+      'head_roll_deg',
+      'head_pitch_deg',
+      'head_yaw_deg',
     ];
 
     const rows = trialLogs.map(log =>
       [
-        log.participantId,
-        log.tiltCondition,
-        log.trialId,
-        log.levelId,
-        log.D,
-        log.W,
-        log.startTime,
-        log.endTime,
-        log.MT,
-        log.targetIndex,
-        log.clickedIndex,
-        log.isError,
-        log.distanceFromCenter,
+        // 1. 試行の基本情報
+        log.participant_id,
+        log.condition,
+        log.block_index,
+        log.trial_index,
+        // 2. ターゲット・タスク条件
+        log.amplitude_px,
+        log.target_width_px,
+        log.target_direction_deg,
+        log.start_center_x,
+        log.start_center_y,
+        log.target_center_x,
+        log.target_center_y,
+        log.id_theoretical,
+        // 3. 時間情報
+        log.trial_start_time_ms,
+        log.click_time_ms,
+        log.movement_time_ms,
+        // 4. クリック位置と誤差
+        log.click_x,
+        log.click_y,
+        log.hit,
+        log.dx_px,
+        log.dy_px,
+        log.radial_error_px,
+        log.error_angle_world_deg,
+        log.e_along_px,
+        log.e_cross_px,
+        log.error_angle_relative_deg,
+        // 5. 画面の傾き・頭部角度
+        log.screen_roll_deg,
+        log.screen_pitch_deg,
+        log.screen_yaw_deg,
+        log.head_roll_deg,
+        log.head_pitch_deg,
+        log.head_yaw_deg,
       ].join(',')
     );
 
@@ -386,6 +421,123 @@ const FittsTaskPage = () => {
     const x = centerX + currentLevel.R * Math.cos(angle);
     const y = centerY + currentLevel.R * Math.sin(angle);
     return { x, y };
+  };
+
+  // conditionをNoTilt/Tilt1/Tilt2形式に変換
+  const getConditionString = (cond: string): string => {
+    switch (cond) {
+      case 'default': return 'NoTilt';
+      case 'rotate1': return 'Tilt1';
+      case 'rotate2': return 'Tilt2';
+      default: return cond;
+    }
+  };
+
+  // 角度を-180〜180度に正規化
+  const normalizeAngle = (angle: number): number => {
+    while (angle > 180) angle -= 360;
+    while (angle < -180) angle += 360;
+    return angle;
+  };
+
+  // ログ作成用のヘルパー関数
+  const createTrialLog = (
+    clickX: number,
+    clickY: number,
+    clickTimeMs: number,
+    startTimeMs: number,
+    targetIdx: number,
+    prevTargetIdx: number | null,
+    isHit: boolean
+  ): FittsTrialLog => {
+    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 400;
+    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
+
+    // ターゲット座標
+    const targetPos = getTargetPosition(targetIdx, centerX, centerY);
+
+    // スタート座標（前のターゲット位置、なければ画面中心を使用）
+    const startPos = prevTargetIdx !== null
+      ? getTargetPosition(prevTargetIdx, centerX, centerY)
+      : { x: centerX, y: centerY };
+
+    // amplitude（スタートからターゲットまでの距離）
+    const amplitude_px = Math.sqrt(
+      Math.pow(targetPos.x - startPos.x, 2) +
+      Math.pow(targetPos.y - startPos.y, 2)
+    );
+
+    // ターゲット方向（度）
+    const target_direction_deg = Math.atan2(
+      targetPos.y - startPos.y,
+      targetPos.x - startPos.x
+    ) * 180 / Math.PI;
+
+    // 理論的ID
+    const id_theoretical = Math.log2(amplitude_px / currentLevel.W + 1);
+
+    // クリック誤差
+    const dx_px = clickX - targetPos.x;
+    const dy_px = clickY - targetPos.y;
+    const radial_error_px = Math.sqrt(dx_px * dx_px + dy_px * dy_px);
+
+    // 誤差角度（世界座標系）
+    const error_angle_world_deg = Math.atan2(dy_px, dx_px) * 180 / Math.PI;
+
+    // ターゲット方向に沿った誤差分解
+    const target_dir_rad = target_direction_deg * Math.PI / 180;
+    const ux = Math.cos(target_dir_rad);
+    const uy = Math.sin(target_dir_rad);
+    const vx = -uy;
+    const vy = ux;
+    const e_along_px = dx_px * ux + dy_px * uy;
+    const e_cross_px = dx_px * vx + dy_px * vy;
+
+    // 相対誤差角度
+    const error_angle_relative_deg = normalizeAngle(error_angle_world_deg - target_direction_deg);
+
+    return {
+      // 1. 試行の基本情報
+      participant_id: session!.participant_id,
+      condition: getConditionString(session!.condition),
+      block_index: currentLevelIndex,
+      trial_index: currentTrialInLevel,
+
+      // 2. ターゲット・タスク条件
+      amplitude_px: Number(amplitude_px.toFixed(4)),
+      target_width_px: currentLevel.W,
+      target_direction_deg: Number(target_direction_deg.toFixed(4)),
+      start_center_x: Number(startPos.x.toFixed(4)),
+      start_center_y: Number(startPos.y.toFixed(4)),
+      target_center_x: Number(targetPos.x.toFixed(4)),
+      target_center_y: Number(targetPos.y.toFixed(4)),
+      id_theoretical: Number(id_theoretical.toFixed(4)),
+
+      // 3. 時間情報（ミリ秒）
+      trial_start_time_ms: Number(startTimeMs.toFixed(4)),
+      click_time_ms: Number(clickTimeMs.toFixed(4)),
+      movement_time_ms: Number((clickTimeMs - startTimeMs).toFixed(4)),
+
+      // 4. クリック位置と誤差
+      click_x: Number(clickX.toFixed(4)),
+      click_y: Number(clickY.toFixed(4)),
+      hit: isHit,
+      dx_px: Number(dx_px.toFixed(4)),
+      dy_px: Number(dy_px.toFixed(4)),
+      radial_error_px: Number(radial_error_px.toFixed(4)),
+      error_angle_world_deg: Number(error_angle_world_deg.toFixed(4)),
+      e_along_px: Number(e_along_px.toFixed(4)),
+      e_cross_px: Number(e_cross_px.toFixed(4)),
+      error_angle_relative_deg: Number(error_angle_relative_deg.toFixed(4)),
+
+      // 5. 画面の傾き・頭部角度
+      screen_roll_deg: Number(screenRotation.roll.toFixed(4)),
+      screen_pitch_deg: Number(screenRotation.pitch.toFixed(4)),
+      screen_yaw_deg: Number(screenRotation.yaw.toFixed(4)),
+      head_roll_deg: Number(headPose.roll.toFixed(4)),
+      head_pitch_deg: Number(headPose.pitch.toFixed(4)),
+      head_yaw_deg: Number(headPose.yaw.toFixed(4)),
+    };
   };
 
   // ホームに戻る

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { SteeringTrialLog } from '../types';
+import { SteeringTrialLog, SteeringPathSample, ScreenRotation } from '../types';
 
 interface SteeringTaskProps {
   participantId: string;
-  tiltCondition: 'baseline' | 'tilt';
-  onComplete: (logs: SteeringTrialLog[]) => void;
+  condition: string;  // NoTilt / Tilt1 / Tilt2
+  screenRotation: ScreenRotation;
+  onComplete: (logs: SteeringTrialLog[], pathSamples: SteeringPathSample[]) => void;
   isPractice?: boolean;
   practiceRound?: number;
   onPracticeComplete?: () => void;
@@ -27,7 +28,8 @@ const TRIALS_PER_CONDITION = 10;
 
 export const SteeringTask: React.FC<SteeringTaskProps> = ({
   participantId,
-  tiltCondition,
+  condition,
+  screenRotation,
   onComplete,
   isPractice = false,
   practiceRound = 0,
@@ -38,12 +40,17 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
   const lastPositionRef = useRef<{ x: number; y: number; wasInside: boolean } | null>(null);
 
   const [trials, setTrials] = useState<SteeringTrialLog[]>([]);
+  const [allPathSamples, setAllPathSamples] = useState<SteeringPathSample[]>([]);
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [errorTime, setErrorTime] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const [lastErrorCheckTime, setLastErrorCheckTime] = useState(0);
+
+  // 現在のトライアルのパスサンプル
+  const currentPathSamplesRef = useRef<SteeringPathSample[]>([]);
+  const sampleIndexRef = useRef(0);
 
   // 画面サイズを管理
   const [canvasSize, setCanvasSize] = useState({
@@ -215,6 +222,51 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     };
   };
 
+  // パスサンプルを記録するヘルパー関数
+  const recordPathSample = useCallback((x: number, y: number, timestamp: number) => {
+    const prevSamples = currentPathSamplesRef.current;
+    const prevSample = prevSamples.length > 0 ? prevSamples[prevSamples.length - 1] : null;
+
+    // 中心線からの横方向ズレ（水平トンネルの場合）
+    // 正が下方向、負が上方向
+    const lateral_deviation_px = y - CENTER_Y;
+    const distance_to_centerline_px = Math.abs(lateral_deviation_px);
+
+    // 中心線に沿った位置（スタートからの距離）
+    const arc_length_along_centerline_px = Math.max(0, x - START_X_MIN);
+
+    // 直前サンプルからの移動距離
+    let delta_path_length_px = 0;
+    if (prevSample) {
+      const dx = x - prevSample.cursor_x;
+      const dy = y - prevSample.cursor_y;
+      delta_path_length_px = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // トンネル内判定
+    const inside_tunnel = distance_to_centerline_px <= currentConfig.W / 2 &&
+      x >= START_X_MIN && x <= GOAL_X_MAX;
+
+    const sample: SteeringPathSample = {
+      participant_id: participantId,
+      condition,
+      block_index: isPractice ? 0 : 1,
+      trial_index: currentTrialIndex,
+      sample_index: sampleIndexRef.current,
+      timestamp_ms: timestamp,
+      cursor_x: x,
+      cursor_y: y,
+      inside_tunnel,
+      distance_to_centerline_px,
+      lateral_deviation_px,
+      arc_length_along_centerline_px,
+      delta_path_length_px,
+    };
+
+    currentPathSamplesRef.current.push(sample);
+    sampleIndexRef.current++;
+  }, [participantId, condition, isPractice, currentTrialIndex, CENTER_Y, START_X_MIN, GOAL_X_MAX, currentConfig.W]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     // キャンバスのローカル座標を使用（回転に影響されない）
     const x = e.nativeEvent.offsetX;
@@ -222,13 +274,20 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
     // スタートエリア内でのみ開始
     if (isInStartArea(x, y)) {
+      const now = performance.now();
       setIsDrawing(true);
-      setStartTime(performance.now());
+      setStartTime(now);
       setErrorTime(0);
       setErrorCount(0);
-      setLastErrorCheckTime(performance.now());
+      setLastErrorCheckTime(now);
       lastPositionRef.current = { x, y, wasInside: true };
       lastMousePositionRef.current = { offsetX: x, offsetY: y };
+
+      // パスサンプルの初期化と最初のサンプル記録
+      currentPathSamplesRef.current = [];
+      sampleIndexRef.current = 0;
+      recordPathSample(x, y, now);
+
       drawCanvas();
     }
   };
@@ -251,6 +310,9 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
 
     const inside = isInsideTunnel(x, y);
 
+    // パスサンプルを記録
+    recordPathSample(x, y, performance.now());
+
     // 軌跡を描画
     ctx.fillStyle = inside ? '#2196F3' : '#F44336';
     ctx.beginPath();
@@ -268,6 +330,9 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
     const endTime = performance.now();
     const MT = endTime - startTime;
 
+    // 最後のサンプルを記録
+    recordPathSample(x, y, endTime);
+
     // ゴールエリアに到達したかチェック
     if (isInGoalArea(x, y)) {
       // 成功判定（例：エラー時間がMTの20%以下）
@@ -284,24 +349,60 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
         }
         drawCanvas();
       } else {
-        // 本番モード：ログを記録
+        // 本番モード：パスサンプルから統計値を計算
+        const samples = currentPathSamplesRef.current;
+
+        // 経路長の計算
+        const path_length_px = samples.reduce((sum, s) => sum + s.delta_path_length_px, 0);
+
+        // 平均速度
+        const mean_speed_px_per_s = path_length_px / (MT / 1000);
+
+        // 経路効率
+        const path_efficiency = A / path_length_px;
+
+        // 横方向ズレの統計
+        const absDeviations = samples.map(s => Math.abs(s.lateral_deviation_px));
+        const mean_abs_lateral_deviation_px = absDeviations.length > 0
+          ? absDeviations.reduce((sum, d) => sum + d, 0) / absDeviations.length
+          : 0;
+        const max_abs_lateral_deviation_px = absDeviations.length > 0
+          ? Math.max(...absDeviations)
+          : 0;
+
+        // ログを記録
         const log: SteeringTrialLog = {
-          participantId,
-          tiltCondition,
-          trialId: currentTrialIndex,
-          widthCondition: currentConfig.widthCondition,
-          A,
-          W: currentConfig.W,
-          startTime,
-          endTime,
-          MT,
-          errorTime,
-          errorCount,
+          participant_id: participantId,
+          condition,
+          block_index: 1,  // 本番は1
+          trial_index: currentTrialIndex,
+          course_id: currentConfig.widthCondition,
+          steering_length_px: A,
+          steering_width_px: currentConfig.W,
+          steering_id_L_over_W: A / currentConfig.W,
+          trial_start_time_ms: startTime,
+          trial_end_time_ms: endTime,
+          movement_time_ms: MT,
           success,
+          collision_count: errorCount,
+          collision_time_ms_total: errorTime,
+          path_length_px,
+          mean_speed_px_per_s,
+          path_efficiency,
+          mean_abs_lateral_deviation_px,
+          max_abs_lateral_deviation_px,
+          tilt_mode: condition,
+          screen_roll_deg: screenRotation.roll,
+          screen_pitch_deg: screenRotation.pitch,
+          screen_yaw_deg: screenRotation.yaw,
         };
 
         const newTrials = [...trials, log];
         setTrials(newTrials);
+
+        // パスサンプルを全体に追加
+        const newAllSamples = [...allPathSamples, ...samples];
+        setAllPathSamples(newAllSamples);
 
         // 次のトライアルへ
         const nextTrialIndex = currentTrialIndex + 1;
@@ -310,7 +411,7 @@ export const SteeringTask: React.FC<SteeringTaskProps> = ({
           // currentConfigが変更されると、useEffectでdrawCanvas()が自動的に呼び出される
         } else {
           // 全トライアル完了
-          onComplete(newTrials);
+          onComplete(newTrials, newAllSamples);
         }
       }
     } else {

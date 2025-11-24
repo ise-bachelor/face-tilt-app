@@ -166,11 +166,22 @@ const FittsTaskPage = () => {
     const clickTimeMs = Date.now(); // ミリ秒単位
     const startTimeMs = trialStartTime;
 
-    // クリック位置からターゲット中心までの距離を計算
-    const distanceFromCenter = calculateDistanceFromCenter(clickX, clickY, currentTargetIndex);
+    // クリックされた要素のboundingRectを取得（画面回転を考慮）
+    const targetElement = e.currentTarget as HTMLElement;
+    const rect = targetElement.getBoundingClientRect();
+    const targetCenterX = rect.left + rect.width / 2;
+    const targetCenterY = rect.top + rect.height / 2;
 
-    // ターゲット半径（W/2）より距離が大きい場合はターゲット外クリック（ログ用）
-    const isOutsideTarget = distanceFromCenter > (currentLevel.W / 2);
+    // ターゲット中心からの距離を計算（画面回転を考慮した実際の位置）
+    const dx = clickX - targetCenterX;
+    const dy = clickY - targetCenterY;
+    const distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
+
+    // ターゲット半径（実際の要素サイズから取得）
+    const targetRadius = rect.width / 2;
+
+    // ターゲット半径より距離が大きい場合はターゲット外クリック
+    const isOutsideTarget = distanceFromCenter > targetRadius;
 
     // ヒット判定（正しいターゲットをクリックし、かつターゲット半径内に入った場合のみ成功）
     const isHit = clickedIndex === currentTargetIndex && !isOutsideTarget;

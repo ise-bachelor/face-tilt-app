@@ -106,19 +106,46 @@ export interface FittsLogEntry {
 
 // フィッツタスク: トライアルログ（ISO 9241-411準拠）
 export interface FittsTrialLog {
-  participantId: string;
-  tiltCondition: 'baseline' | 'tilt';
-  trialId: number;
-  levelId: 'low' | 'mid' | 'high';
-  D: number;  // Distance (radius)
-  W: number;  // Width (target size)
-  startTime: number;  // 秒単位（小数第4位まで）
-  endTime: number;    // 秒単位（小数第4位まで）
-  MT: number;  // Movement Time（秒単位）
-  targetIndex: number;
-  clickedIndex: number;
-  isError: boolean;
-  distanceFromCenter: number;  // クリック位置からターゲット中心までの距離（ピクセル）
+  // 1. 試行の基本情報
+  participant_id: string;
+  condition: string;  // NoTilt / Tilt1 / Tilt2
+  block_index: number;  // ブロック番号（0,1,2...）
+  trial_index: number;  // そのブロック内での試行番号
+
+  // 2. ターゲット・タスク条件
+  amplitude_px: number;  // スタートからターゲット中心までの距離（px）
+  target_width_px: number;  // ターゲットの直径（px）
+  target_direction_deg: number;  // スタートから見たターゲット方向（度）
+  start_center_x: number;  // スタート円の中心x座標（px）
+  start_center_y: number;  // スタート円の中心y座標（px）
+  target_center_x: number;  // ターゲット中心x座標（px）
+  target_center_y: number;  // ターゲット中心y座標（px）
+  id_theoretical: number;  // 理論的なID: log2(A/W + 1)
+
+  // 3. 時間情報（ミリ秒）
+  trial_start_time_ms: number;  // ターゲットが表示された時刻
+  click_time_ms: number;  // クリックが確定した時刻
+  movement_time_ms: number;  // MT（移動時間）
+
+  // 4. クリック位置と誤差
+  click_x: number;  // クリック位置のx座標（px）
+  click_y: number;  // クリック位置のy座標（px）
+  hit: boolean;  // ターゲット内に入ったかどうか
+  dx_px: number;  // ターゲット中心から見たx方向のずれ
+  dy_px: number;  // ターゲット中心から見たy方向のずれ
+  radial_error_px: number;  // ターゲット中心からの距離（ずれの大きさ）
+  error_angle_world_deg: number;  // 誤差ベクトルの角度（画面座標系での方向）
+  e_along_px: number;  // ターゲット方向に沿った誤差（前後方向）
+  e_cross_px: number;  // ターゲット方向に直交する誤差（横ずれ）
+  error_angle_relative_deg: number;  // ターゲット方向から見た誤差の角度
+
+  // 5. 画面の傾き・頭部角度
+  screen_roll_deg: number;  // 画面のRoll角
+  screen_pitch_deg: number;  // 画面のPitch角
+  screen_yaw_deg: number;  // 画面のYaw角
+  head_roll_deg: number;  // 頭部Roll角
+  head_pitch_deg: number;  // 頭部Pitch角
+  head_yaw_deg: number;  // 頭部Yaw角
 }
 
 // ステアリングタスク: 軌跡ログ

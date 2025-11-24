@@ -172,8 +172,8 @@ const FittsTaskPage = () => {
     // ターゲット半径（W/2）より距離が大きい場合はターゲット外クリック（ログ用）
     const isOutsideTarget = distanceFromCenter > (currentLevel.W / 2);
 
-    // 正しいターゲットをクリックしたかどうか（ターゲット要素をクリックしたら成功）
-    const isCorrectTarget = clickedIndex === currentTargetIndex;
+    // ヒット判定（正しいターゲットをクリックし、かつターゲット半径内に入った場合のみ成功）
+    const isHit = clickedIndex === currentTargetIndex && !isOutsideTarget;
 
     // 練習モードでない場合のみログを記録
     if (!isPractice) {
@@ -184,14 +184,14 @@ const FittsTaskPage = () => {
         startTimeMs,
         currentTargetIndex,
         previousTargetIndex,
-        !isOutsideTarget // hit: ターゲット半径内に入ったかどうか（解析用）
+        isHit
       );
 
       setTrialLogs(prev => [...prev, log]);
     }
 
-    // 正しいターゲットがクリックされた場合のみ次へ進む
-    if (isCorrectTarget) {
+    // ヒットした場合のみ次へ進む
+    if (isHit) {
       // 練習モードの場合
       if (isPractice) {
         const nextRound = practiceRound + 1;

@@ -8,8 +8,18 @@ import { usePostureLog } from '../hooks/usePostureLog';
 import { useRecording } from '../hooks/useRecording';
 import { getContainerStyle } from '../styles';
 import { downloadCSV, downloadWebM } from '../utils/downloadUtils';
-import { SteeringTrialLog } from '../types';
+import { SteeringTrialLog, SteeringPathSample } from '../types';
 import { SteeringTask } from '../components/SteeringTask';
+
+// 条件名を変換
+const getConditionString = (condition: string): string => {
+  switch (condition) {
+    case 'default': return 'NoTilt';
+    case 'rotate1': return 'Tilt1';
+    case 'rotate2': return 'Tilt2';
+    default: return condition;
+  }
+};
 import { TaskInstructionScreen } from '../components/TaskInstructionScreen';
 import { PostTaskQuestionnaires } from '../components/PostTaskQuestionnaires';
 
@@ -33,6 +43,7 @@ const SteeringTaskPage = () => {
   const [isTaskCompleted, setIsTaskCompleted] = useState(false);
   const [isShowingQuestionnaire, setIsShowingQuestionnaire] = useState(false);
   const [steeringLogs, setSteeringLogs] = useState<SteeringTrialLog[]>([]);
+  const [pathSamples, setPathSamples] = useState<SteeringPathSample[]>([]);
 
   // 練習モード管理
   const [isPractice, setIsPractice] = useState(true);
@@ -102,8 +113,9 @@ const SteeringTaskPage = () => {
   };
 
   // タスク完了
-  const handleComplete = (logs: SteeringTrialLog[]) => {
+  const handleComplete = (logs: SteeringTrialLog[], samples: SteeringPathSample[]) => {
     setSteeringLogs(logs);
+    setPathSamples(samples);
     stopRecording();
     setIsTaskStarted(false);
     setIsTaskCompleted(true);
@@ -127,9 +139,15 @@ const SteeringTaskPage = () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
 
     // Steering トライアルログ（CSV）
-    const steeringCSV = exportSteeringLogsAsCSV();
-    if (steeringCSV) {
-      downloadCSV(steeringCSV, `${baseFilename}_trials_${timestamp}.csv`);
+    const trialCSV = exportSteeringTrialLogsAsCSV();
+    if (trialCSV) {
+      downloadCSV(trialCSV, `${baseFilename}_trial_log_${timestamp}.csv`);
+    }
+
+    // Steering パスログ（CSV）
+    const pathCSV = exportPathSamplesAsCSV();
+    if (pathCSV) {
+      downloadCSV(pathCSV, `${baseFilename}_path_log_${timestamp}.csv`);
     }
 
     // 姿勢ログ（CSV）
@@ -156,39 +174,108 @@ const SteeringTaskPage = () => {
     router.push('/');
   };
 
-  // Steering ログを CSV に変換
-  const exportSteeringLogsAsCSV = (): string => {
+  // Steering トライアルログを CSV に変換
+  const exportSteeringTrialLogsAsCSV = (): string => {
     if (steeringLogs.length === 0) return '';
 
     const headers = [
-      'participantId',
-      'tiltCondition',
-      'trialId',
-      'widthCondition',
-      'A',
-      'W',
-      'startTime',
-      'endTime',
-      'MT',
-      'errorTime',
-      'errorCount',
+      // 基本情報
+      'participant_id',
+      'condition',
+      'block_index',
+      'trial_index',
+      'course_id',
+      // コース条件
+      'steering_length_px',
+      'steering_width_px',
+      'steering_id_L_over_W',
+      // 時間情報
+      'trial_start_time_ms',
+      'trial_end_time_ms',
+      'movement_time_ms',
+      // 結果
       'success',
+      'collision_count',
+      'collision_time_ms_total',
+      'path_length_px',
+      'mean_speed_px_per_s',
+      'path_efficiency',
+      'mean_abs_lateral_deviation_px',
+      'max_abs_lateral_deviation_px',
+      // 傾き
+      'screen_roll_deg',
+      'screen_pitch_deg',
+      'screen_yaw_deg',
     ];
 
     const rows = steeringLogs.map(log =>
       [
-        log.participantId,
-        log.tiltCondition,
-        log.trialId,
-        log.widthCondition,
-        log.A,
-        log.W,
-        log.startTime.toFixed(2),
-        log.endTime.toFixed(2),
-        log.MT.toFixed(2),
-        log.errorTime.toFixed(2),
-        log.errorCount,
+        log.participant_id,
+        log.condition,
+        log.block_index,
+        log.trial_index,
+        log.course_id,
+        log.steering_length_px.toFixed(2),
+        log.steering_width_px.toFixed(2),
+        log.steering_id_L_over_W.toFixed(4),
+        log.trial_start_time_ms.toFixed(2),
+        log.trial_end_time_ms.toFixed(2),
+        log.movement_time_ms.toFixed(2),
         log.success,
+        log.collision_count,
+        log.collision_time_ms_total.toFixed(2),
+        log.path_length_px.toFixed(2),
+        log.mean_speed_px_per_s.toFixed(4),
+        log.path_efficiency.toFixed(4),
+        log.mean_abs_lateral_deviation_px.toFixed(4),
+        log.max_abs_lateral_deviation_px.toFixed(4),
+        log.screen_roll_deg.toFixed(4),
+        log.screen_pitch_deg.toFixed(4),
+        log.screen_yaw_deg.toFixed(4),
+      ].join(',')
+    );
+
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  // Steering パスサンプルを CSV に変換
+  const exportPathSamplesAsCSV = (): string => {
+    if (pathSamples.length === 0) return '';
+
+    const headers = [
+      // 基本情報
+      'participant_id',
+      'condition',
+      'block_index',
+      'trial_index',
+      'sample_index',
+      // 時刻・位置
+      'timestamp_ms',
+      'cursor_x',
+      'cursor_y',
+      // 通路とズレ
+      'inside_tunnel',
+      'distance_to_centerline_px',
+      'lateral_deviation_px',
+      'arc_length_along_centerline_px',
+      'delta_path_length_px',
+    ];
+
+    const rows = pathSamples.map(sample =>
+      [
+        sample.participant_id,
+        sample.condition,
+        sample.block_index,
+        sample.trial_index,
+        sample.sample_index,
+        sample.timestamp_ms.toFixed(2),
+        sample.cursor_x.toFixed(2),
+        sample.cursor_y.toFixed(2),
+        sample.inside_tunnel,
+        sample.distance_to_centerline_px.toFixed(4),
+        sample.lateral_deviation_px.toFixed(4),
+        sample.arc_length_along_centerline_px.toFixed(4),
+        sample.delta_path_length_px.toFixed(4),
       ].join(',')
     );
 
@@ -208,7 +295,7 @@ const SteeringTaskPage = () => {
     return <div>読み込み中...</div>;
   }
 
-  const tiltCondition = (session.condition === 'rotate1' || session.condition === 'rotate2') ? 'tilt' : 'baseline';
+  const conditionString = getConditionString(session.condition);
 
   // アンケート画面
   if (isShowingQuestionnaire) {
@@ -270,7 +357,8 @@ const SteeringTaskPage = () => {
         <div style={contentContainerStyle}>
           <SteeringTask
             participantId={session.participant_id}
-            tiltCondition={tiltCondition}
+            condition={conditionString}
+            screenRotation={screenRotation}
             onComplete={handleComplete}
             isPractice={isPractice}
             practiceRound={practiceRound}

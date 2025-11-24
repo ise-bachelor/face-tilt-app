@@ -145,7 +145,68 @@ export interface FittsTrialLog {
   screen_yaw_deg: number;  // 画面のYaw角
 }
 
-// ステアリングタスク: 軌跡ログ
+// ステアリングタスク: パスサンプル（時系列ログ）
+export interface SteeringPathSample {
+  // 基本情報
+  participant_id: string;
+  condition: string;  // NoTilt / Tilt1 / Tilt2
+  block_index: number;
+  trial_index: number;
+  sample_index: number;
+
+  // 時刻・位置
+  timestamp_ms: number;
+  cursor_x: number;
+  cursor_y: number;
+
+  // 通路とズレ
+  inside_tunnel: boolean;
+  distance_to_centerline_px: number;
+  lateral_deviation_px: number;
+  arc_length_along_centerline_px: number;
+  delta_path_length_px: number;
+}
+
+// ステアリングタスク: トライアルログ（Steering Law準拠）
+export interface SteeringTrialLog {
+  // 1. 基本情報
+  participant_id: string;
+  condition: string;  // NoTilt / Tilt1 / Tilt2
+  block_index: number;
+  trial_index: number;
+  course_id: string;
+
+  // 2. コース条件（Steering Law用）
+  steering_length_px: number;  // コース中心線の長さ L
+  steering_width_px: number;   // トンネル幅 W
+  steering_id_L_over_W: number;  // L/W（Steering LawのID）
+
+  // 3. 時間情報
+  trial_start_time_ms: number;
+  trial_end_time_ms: number;
+  movement_time_ms: number;
+
+  // 4. 成功・エラー・衝突関連
+  success: boolean;
+  collision_count: number;
+  collision_time_ms_total: number;
+
+  // 5. 経路の長さ・速度・効率
+  path_length_px: number;
+  mean_speed_px_per_s: number;
+  path_efficiency: number;
+
+  // 6. 通路中心線からのズレ（Trial平均）
+  mean_abs_lateral_deviation_px: number;
+  max_abs_lateral_deviation_px: number;
+
+  // 7. 画面の傾き
+  screen_roll_deg: number;
+  screen_pitch_deg: number;
+  screen_yaw_deg: number;
+}
+
+// 旧型（後方互換性のため残す）
 export interface SteeringLogEntry {
   timestamp: number;
   trial_index: number;
@@ -155,22 +216,6 @@ export interface SteeringLogEntry {
   y: number;
   is_inside_tunnel: boolean;
   is_practice: boolean;
-}
-
-// ステアリングタスク: トライアルログ（Steering Law準拠）
-export interface SteeringTrialLog {
-  participantId: string;
-  tiltCondition: 'baseline' | 'tilt';
-  trialId: number;
-  widthCondition: 'easy' | 'medium' | 'hard';
-  A: number;  // Tunnel length (800px)
-  W: number;  // Tunnel width (200/100/50px)
-  startTime: number;
-  endTime: number;
-  MT: number;  // Movement Time
-  errorTime: number;  // Time spent outside tunnel
-  errorCount: number;  // Number of times exiting tunnel
-  success: boolean;
 }
 
 // ビデオ画像公開の同意タイプ

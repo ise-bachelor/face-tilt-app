@@ -146,6 +146,9 @@ export interface FittsTrialLog {
   head_roll_deg: number;  // 頭部Roll角
   head_pitch_deg: number;  // 頭部Pitch角
   head_yaw_deg: number;  // 頭部Yaw角
+  head_tx: number;  // 頭部左右移動
+  head_ty: number;  // 頭部上下移動
+  head_tz: number;  // 頭部前後移動
 }
 
 // ステアリングタスク: 軌跡ログ

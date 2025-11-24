@@ -380,6 +380,9 @@ const FittsTaskPage = () => {
       'head_roll_deg',
       'head_pitch_deg',
       'head_yaw_deg',
+      'head_tx',
+      'head_ty',
+      'head_tz',
     ];
 
     const rows = trialLogs.map(log =>
@@ -420,6 +423,9 @@ const FittsTaskPage = () => {
         log.head_roll_deg,
         log.head_pitch_deg,
         log.head_yaw_deg,
+        log.head_tx,
+        log.head_ty,
+        log.head_tz,
       ].join(',')
     );
 
@@ -548,6 +554,9 @@ const FittsTaskPage = () => {
       head_roll_deg: Number(headPose.roll.toFixed(4)),
       head_pitch_deg: Number(headPose.pitch.toFixed(4)),
       head_yaw_deg: Number(headPose.yaw.toFixed(4)),
+      head_tx: Number(headTranslation.tx.toFixed(4)),
+      head_ty: Number(headTranslation.ty.toFixed(4)),
+      head_tz: Number(headTranslation.tz.toFixed(4)),
     };
   };
 

@@ -139,16 +139,10 @@ export interface FittsTrialLog {
   e_cross_px: number;  // ターゲット方向に直交する誤差（横ずれ）
   error_angle_relative_deg: number;  // ターゲット方向から見た誤差の角度
 
-  // 5. 画面の傾き・頭部角度
+  // 5. 画面の傾き
   screen_roll_deg: number;  // 画面のRoll角
   screen_pitch_deg: number;  // 画面のPitch角
   screen_yaw_deg: number;  // 画面のYaw角
-  head_roll_deg: number;  // 頭部Roll角
-  head_pitch_deg: number;  // 頭部Pitch角
-  head_yaw_deg: number;  // 頭部Yaw角
-  head_tx: number;  // 頭部左右移動
-  head_ty: number;  // 頭部上下移動
-  head_tz: number;  // 頭部前後移動
 }
 
 // ステアリングタスク: 軌跡ログ

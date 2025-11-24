@@ -373,16 +373,10 @@ const FittsTaskPage = () => {
       'e_along_px',
       'e_cross_px',
       'error_angle_relative_deg',
-      // 5. 画面の傾き・頭部角度
+      // 5. 画面の傾き
       'screen_roll_deg',
       'screen_pitch_deg',
       'screen_yaw_deg',
-      'head_roll_deg',
-      'head_pitch_deg',
-      'head_yaw_deg',
-      'head_tx',
-      'head_ty',
-      'head_tz',
     ];
 
     const rows = trialLogs.map(log =>
@@ -416,16 +410,10 @@ const FittsTaskPage = () => {
         log.e_along_px,
         log.e_cross_px,
         log.error_angle_relative_deg,
-        // 5. 画面の傾き・頭部角度
+        // 5. 画面の傾き
         log.screen_roll_deg,
         log.screen_pitch_deg,
         log.screen_yaw_deg,
-        log.head_roll_deg,
-        log.head_pitch_deg,
-        log.head_yaw_deg,
-        log.head_tx,
-        log.head_ty,
-        log.head_tz,
       ].join(',')
     );
 
@@ -547,16 +535,10 @@ const FittsTaskPage = () => {
       e_cross_px: Number(e_cross_px.toFixed(4)),
       error_angle_relative_deg: Number(error_angle_relative_deg.toFixed(4)),
 
-      // 5. 画面の傾き・頭部角度
+      // 5. 画面の傾き
       screen_roll_deg: Number(screenRotation.roll.toFixed(4)),
       screen_pitch_deg: Number(screenRotation.pitch.toFixed(4)),
       screen_yaw_deg: Number(screenRotation.yaw.toFixed(4)),
-      head_roll_deg: Number(headPose.roll.toFixed(4)),
-      head_pitch_deg: Number(headPose.pitch.toFixed(4)),
-      head_yaw_deg: Number(headPose.yaw.toFixed(4)),
-      head_tx: Number(headTranslation.tx.toFixed(4)),
-      head_ty: Number(headTranslation.ty.toFixed(4)),
-      head_tz: Number(headTranslation.tz.toFixed(4)),
     };
   };
 

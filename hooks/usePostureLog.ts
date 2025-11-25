@@ -21,29 +21,48 @@ export const usePostureLog = ({
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 最新の値を参照するためのref
+  const headPoseRef = useRef(headPose);
+  const headTranslationRef = useRef(headTranslation);
+  const screenRotationRef = useRef(screenRotation);
+  const latencyRef = useRef(latency);
+  const sessionRef = useRef(session);
+
+  // refを常に最新の値に更新
+  useEffect(() => {
+    headPoseRef.current = headPose;
+    headTranslationRef.current = headTranslation;
+    screenRotationRef.current = screenRotation;
+    latencyRef.current = latency;
+    sessionRef.current = session;
+  }, [headPose, headTranslation, screenRotation, latency, session]);
+
   useEffect(() => {
     if (isRecording && session) {
       // 4Hz = 250ms間隔でログを記録
       intervalIdRef.current = setInterval(() => {
+        const currentSession = sessionRef.current;
+        if (!currentSession) return;
+        console.log("Logging posture data...");
         const logEntry: PostureLogEntry = {
           timestamp: Number((Date.now() / 1000).toFixed(4)), // 秒単位（小数第4位まで）
-          participant_id: session.participant_id,
-          condition: session.condition,
-          task_name: session.task_name,
+          participant_id: currentSession.participant_id,
+          condition: currentSession.condition,
+          task_name: currentSession.task_name,
           // 頭部回転（基準との差分）
-          Head_Pitch: headPose.pitch,
-          Head_Yaw: headPose.yaw,
-          Head_Roll: headPose.roll,
+          Head_Pitch: headPoseRef.current.pitch,
+          Head_Yaw: headPoseRef.current.yaw,
+          Head_Roll: headPoseRef.current.roll,
           // 頭部並行移動（基準との差分）
-          Head_Tx: headTranslation.tx,
-          Head_Ty: headTranslation.ty,
-          Head_Tz: headTranslation.tz,
+          Head_Tx: headTranslationRef.current.tx,
+          Head_Ty: headTranslationRef.current.ty,
+          Head_Tz: headTranslationRef.current.tz,
           // 画面回転（カルマンフィルタ後）
-          Screen_Pitch: screenRotation.pitch,
-          Screen_Yaw: screenRotation.yaw,
-          Screen_Roll: screenRotation.roll,
+          Screen_Pitch: screenRotationRef.current.pitch,
+          Screen_Yaw: screenRotationRef.current.yaw,
+          Screen_Roll: screenRotationRef.current.roll,
           // 処理レイテンシ
-          Latency_ms: latency,
+          Latency_ms: latencyRef.current,
         };
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
@@ -55,7 +74,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session, headPose, headTranslation, screenRotation, latency]);
+  }, [isRecording, session]); // 依存配列からheadPose等を削除
 
   const clearLogs = () => {
     setLogs([]);

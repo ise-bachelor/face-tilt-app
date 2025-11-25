@@ -81,15 +81,15 @@ const SteeringTaskPage = () => {
     }
   }, [stream]);
 
-  // タスク開始
+  // タスク開始（練習モード）
   const handleStartTask = async () => {
     try {
-      await startRecording();
+      // 練習開始時は顔追跡のみ開始（録画はしない）
       handleStart();
       setIsTaskStarted(true);
     } catch (error) {
       console.error('タスク開始エラー:', error);
-      alert('録画の開始に失敗しました。');
+      alert('タスクの開始に失敗しました。');
     }
   };
 
@@ -106,10 +106,17 @@ const SteeringTaskPage = () => {
   };
 
   // 練習完了後、本番タスク開始
-  const handleStartMainTask = () => {
-    setIsPractice(false);
-    setShowPracticeCompleteButton(false);
-    setPracticeRound(0);
+  const handleStartMainTask = async () => {
+    try {
+      // 本番タスク開始時に録画を開始
+      await startRecording();
+      setIsPractice(false);
+      setShowPracticeCompleteButton(false);
+      setPracticeRound(0);
+    } catch (error) {
+      console.error('録画開始エラー:', error);
+      alert('録画の開始に失敗しました。');
+    }
   };
 
   // タスク完了

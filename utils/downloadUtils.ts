@@ -1,8 +1,11 @@
 /**
  * CSVファイルをダウンロード
+ * UTF-8 BOMを追加して日本語の文字化けを防止
  */
 export const downloadCSV = (csvContent: string, filename: string) => {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  // UTF-8 BOM（Byte Order Mark）を追加
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, filename);
 };
 

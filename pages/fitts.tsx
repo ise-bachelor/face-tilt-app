@@ -21,9 +21,9 @@ interface DifficultyLevel {
 }
 
 const ALL_DIFFICULTY_LEVELS: Record<'low' | 'mid' | 'high', DifficultyLevel> = {
-  low: { id: 'low', label: '低難易度', R: 150, W: 80 },
-  mid: { id: 'mid', label: '中難易度', R: 300, W: 40 },
-  high: { id: 'high', label: '高難易度', R: 450, W: 20 },
+  low: { id: 'low', label: '低難易度', R: 120, W: 60 },
+  mid: { id: 'mid', label: '中難易度', R: 240, W: 30 },
+  high: { id: 'high', label: '高難易度', R: 360, W: 15 },
 };
 
 // 練習用の難易度レベル（本番とは異なるパラメータで学習効果を避ける）

@@ -105,7 +105,7 @@ const TypingTaskPage = () => {
     }
   }, [isTaskCompleted, typingResult, cameraBlob]);
 
-  const downloadData = (result: TypingResultLog) => {
+  const downloadData = async (result: TypingResultLog) => {
     if (!session) return;
 
     const baseFilename = `P${session.participant_id}_${session.condition}_Task1`;
@@ -114,19 +114,26 @@ const TypingTaskPage = () => {
     const postureCSV = exportLogsAsCSV();
     if (postureCSV) {
       downloadCSV(postureCSV, `${baseFilename}_pose.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Posture logs are empty');
     }
 
     // タイピング結果ログ（CSV）
     const typingResultCSV = generateTypingResultCSV(result);
     downloadCSV(typingResultCSV, `${baseFilename}_typing_result.csv`);
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // キー入力ログ（CSV）
     const keyLogCSV = generateKeyLogCSV(result);
     downloadCSV(keyLogCSV, `${baseFilename}_key_log.csv`);
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // Webカメラ録画（WebM）
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_video.webm`);
+    } else {
+      console.warn('Camera recording is not available');
     }
   };
 

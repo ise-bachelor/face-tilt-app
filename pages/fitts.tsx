@@ -302,8 +302,8 @@ const FittsTaskPage = () => {
     }
   }, [isTaskCompleted, cameraBlob]);
 
-  // データダウンロード
-  const downloadData = () => {
+  // データダウンロード（確実にすべてのファイルをダウンロードするため、遅延を追加）
+  const downloadData = async () => {
     if (!session) return;
 
     const baseFilename = `${session.participant_id}_fitts_${session.condition}`;
@@ -313,17 +313,25 @@ const FittsTaskPage = () => {
     const fittsCSV = exportFittsLogsAsCSV();
     if (fittsCSV) {
       downloadCSV(fittsCSV, `${baseFilename}_trials_${timestamp}.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Fitts trial logs are empty');
     }
 
     // 姿勢ログ（CSV）
     const postureCSV = exportLogsAsCSV();
     if (postureCSV) {
       downloadCSV(postureCSV, `${baseFilename}_posture_${timestamp}.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Posture logs are empty');
     }
 
     // Webカメラ録画（WebM）
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
+    } else {
+      console.warn('Camera recording is not available');
     }
   };
 

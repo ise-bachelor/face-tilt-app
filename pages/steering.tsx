@@ -131,8 +131,8 @@ const SteeringTaskPage = () => {
     }
   }, [isTaskCompleted, steeringLogs, cameraBlob]);
 
-  // データダウンロード
-  const downloadData = () => {
+  // データダウンロード（確実にすべてのファイルをダウンロードするため、遅延を追加）
+  const downloadData = async () => {
     if (!session) return;
 
     const baseFilename = `${session.participant_id}_steering_${session.condition}`;
@@ -142,23 +142,34 @@ const SteeringTaskPage = () => {
     const trialCSV = exportSteeringTrialLogsAsCSV();
     if (trialCSV) {
       downloadCSV(trialCSV, `${baseFilename}_trial_log_${timestamp}.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Steering trial logs are empty');
     }
 
     // Steering パスログ（CSV）
     const pathCSV = exportPathSamplesAsCSV();
     if (pathCSV) {
       downloadCSV(pathCSV, `${baseFilename}_path_log_${timestamp}.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Steering path logs are empty');
     }
 
     // 姿勢ログ（CSV）
     const postureCSV = exportLogsAsCSV();
     if (postureCSV) {
       downloadCSV(postureCSV, `${baseFilename}_posture_${timestamp}.csv`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } else {
+      console.warn('Posture logs are empty');
     }
 
     // Webカメラ録画（WebM）
     if (cameraBlob) {
       downloadWebM(cameraBlob, `${baseFilename}_camera_${timestamp}.webm`);
+    } else {
+      console.warn('Camera recording is not available');
     }
   };
 

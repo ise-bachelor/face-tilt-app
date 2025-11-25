@@ -43,7 +43,7 @@ export const usePostureLog = ({
       intervalIdRef.current = setInterval(() => {
         const currentSession = sessionRef.current;
         if (!currentSession) return;
-
+        console.log("Logging posture data...");
         const logEntry: PostureLogEntry = {
           timestamp: Number((Date.now() / 1000).toFixed(4)), // 秒単位（小数第4位まで）
           participant_id: currentSession.participant_id,

@@ -23,7 +23,7 @@ export const usePostureLog = ({
 
   useEffect(() => {
     if (isRecording && session) {
-      // 4Hz = 250ms間隔でログを記録
+      // 2Hz = 500ms間隔でログを記録
       intervalIdRef.current = setInterval(() => {
         const logEntry: PostureLogEntry = {
           timestamp: Number((Date.now() / 1000).toFixed(4)), // 秒単位（小数第4位まで）
@@ -47,7 +47,7 @@ export const usePostureLog = ({
         };
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
-      }, 250); // 4Hz = 250ms
+      }, 500); // 2Hz = 500ms
     }
 
     return () => {

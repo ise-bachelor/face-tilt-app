@@ -2,9 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useExperiment } from '../contexts/ExperimentContext';
 import { useFaceDetector } from '../hooks/useFaceDetector';
-import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation } from '../types';
+import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation, ExperimentCondition, TaskType } from '../types';
 import { calculateFaceAnglesWithTranslation } from '../utils/faceAngles';
 import { downloadCSV } from '../utils/downloadUtils';
+import { KalmanFilter } from '../utils/KalmanFilter';
+
+// 感度係数（useFaceTrackingと同じ値）
+const ROTATION_SENSITIVITY = 1.0;
+const TRANSLATION_SENSITIVITY_TX = 0.0025;
+const TRANSLATION_SENSITIVITY_TY = 0.001;
+const TRANSLATION_SENSITIVITY_TZ = 0.005;
+const MAX_ROTATION_ANGLE = 60;
+
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.max(min, Math.min(max, value));
+};
 
 const WebmDebugPage = () => {
   const router = useRouter();
@@ -15,6 +27,9 @@ const WebmDebugPage = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [outputFilename, setOutputFilename] = useState<string>('posture_log');
+  const [participantId, setParticipantId] = useState<string>('999');
+  const [condition, setCondition] = useState<ExperimentCondition>('default');
+  const [taskName, setTaskName] = useState<TaskType>('minutes');
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
   const [progress, setProgress] = useState<string>('');
@@ -67,6 +82,13 @@ const WebmDebugPage = () => {
     const interval = 1 / frameRate;
     const tempLogs: PostureLogEntry[] = [];
 
+    // カルマンフィルタの初期化
+    const screenRotationFilters = {
+      rotateX: new KalmanFilter(0.01, 0.1),
+      rotateY: new KalmanFilter(0.01, 0.1),
+      rotateZ: new KalmanFilter(0.01, 0.1),
+    };
+
     try {
       for (let currentTime = 0; currentTime < duration; currentTime += interval) {
         video.currentTime = currentTime;
@@ -79,6 +101,9 @@ const WebmDebugPage = () => {
           };
           video.addEventListener('seeked', onSeeked);
         });
+
+        // レイテンシ計測開始
+        const detectionStartTime = performance.now();
 
         // フレームから顔検出
         const faces = await detector.estimateFaces(video, { flipHorizontal: false });
@@ -110,22 +135,57 @@ const WebmDebugPage = () => {
             tz: translation.tz - baseTranslationRef.current.tz,
           };
 
+          // 画面回転の計算
+          let screenRotation: ScreenRotation;
+          if (condition === 'rotate1' || condition === 'rotate2') {
+            const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
+
+            const rawRotation = {
+              rotateX: (headPose.pitch * ROTATION_SENSITIVITY
+                + headTranslation.ty * TRANSLATION_SENSITIVITY_TY
+                + headTranslation.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
+              rotateY: (headPose.yaw * ROTATION_SENSITIVITY
+                + headTranslation.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
+              rotateZ: (headPose.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
+            };
+
+            // カルマンフィルタ適用
+            const filtered = {
+              rotateX: screenRotationFilters.rotateX.update(rawRotation.rotateX),
+              rotateY: screenRotationFilters.rotateY.update(rawRotation.rotateY),
+              rotateZ: screenRotationFilters.rotateZ.update(rawRotation.rotateZ),
+            };
+
+            // クランプ適用
+            screenRotation = {
+              pitch: clamp(filtered.rotateX, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+              yaw: clamp(filtered.rotateY, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+              roll: clamp(filtered.rotateZ, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+            };
+          } else {
+            // default条件: 画面は回転しない
+            screenRotation = { pitch: 0, yaw: 0, roll: 0 };
+          }
+
+          // レイテンシ計測終了
+          const processingTime = performance.now() - detectionStartTime;
+
           // ログエントリを作成
           const logEntry: PostureLogEntry = {
             timestamp: Number(currentTime.toFixed(4)),
-            participant_id: '999',
-            condition: 'default',
-            task_name: 'minutes',
+            participant_id: participantId,
+            condition: condition,
+            task_name: taskName,
             Head_Pitch: headPose.pitch,
             Head_Yaw: headPose.yaw,
             Head_Roll: headPose.roll,
             Head_Tx: headTranslation.tx,
             Head_Ty: headTranslation.ty,
             Head_Tz: headTranslation.tz,
-            Screen_Pitch: 0,
-            Screen_Yaw: 0,
-            Screen_Roll: 0,
-            Latency_ms: 0,
+            Screen_Pitch: screenRotation.pitch,
+            Screen_Yaw: screenRotation.yaw,
+            Screen_Roll: screenRotation.roll,
+            Latency_ms: processingTime,
           };
 
           tempLogs.push(logEntry);
@@ -215,6 +275,46 @@ const WebmDebugPage = () => {
             onChange={handleFileChange}
             style={fileInputStyle}
           />
+        </div>
+
+        {/* 参加者ID */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>参加者ID</label>
+          <input
+            type="text"
+            value={participantId}
+            onChange={(e) => setParticipantId(e.target.value)}
+            style={inputStyle}
+            placeholder="999"
+          />
+        </div>
+
+        {/* 実験条件 */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>実験条件</label>
+          <select
+            value={condition}
+            onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+            style={selectStyle}
+          >
+            <option value="default">Default (回転なし)</option>
+            <option value="rotate1">Rotate1 (1x回転)</option>
+            <option value="rotate2">Rotate2 (2x回転)</option>
+          </select>
+        </div>
+
+        {/* タスク選択 */}
+        <div style={formGroupStyle}>
+          <label style={labelStyle}>タスク</label>
+          <select
+            value={taskName}
+            onChange={(e) => setTaskName(e.target.value as TaskType)}
+            style={selectStyle}
+          >
+            <option value="minutes">タイピングタスク</option>
+            <option value="fitts">ポインティングタスク</option>
+            <option value="steering">ドラッグタスク</option>
+          </select>
         </div>
 
         {/* 出力ファイル名 */}
@@ -350,6 +450,18 @@ const inputStyle: React.CSSProperties = {
   borderRadius: '6px',
   outline: 'none',
   boxSizing: 'border-box',
+};
+
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px',
+  fontSize: '14px',
+  border: '2px solid #ddd',
+  borderRadius: '6px',
+  outline: 'none',
+  boxSizing: 'border-box',
+  cursor: 'pointer',
+  backgroundColor: 'white',
 };
 
 const fileInputStyle: React.CSSProperties = {

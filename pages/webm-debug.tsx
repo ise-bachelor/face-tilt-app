@@ -34,6 +34,7 @@ const WebmDebugPage = () => {
   const [progress, setProgress] = useState<string>('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const baseRotationRef = useRef({ rotateX: 0, rotateY: 0, rotateZ: 0 });
   const baseTranslationRef = useRef({ tx: 0, ty: 0, tz: 0 });
   const baseSetRef = useRef(false);
@@ -57,7 +58,7 @@ const WebmDebugPage = () => {
   };
 
   const processVideo = async () => {
-    if (!videoRef.current || !detector || !isModelLoaded || !videoFile) {
+    if (!videoRef.current || !canvasRef.current || !detector || !isModelLoaded || !videoFile) {
       alert('ビデオファイルまたはモデルが準備できていません');
       return;
     }
@@ -68,6 +69,14 @@ const WebmDebugPage = () => {
     baseSetRef.current = false;
 
     const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      alert('Canvas context を取得できませんでした');
+      setIsProcessing(false);
+      return;
+    }
 
     // ビデオのメタデータが読み込まれるまで待つ
     if (video.readyState < 1) {
@@ -120,6 +129,11 @@ const WebmDebugPage = () => {
       return;
     }
 
+    // Canvasのサイズをビデオの寸法に設定
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    console.log('Canvas size set to:', canvas.width, 'x', canvas.height);
+
     const frameRate = 4; // 4Hz
     const interval = 1 / frameRate;
     const tempLogs: PostureLogEntry[] = [];
@@ -157,11 +171,15 @@ const WebmDebugPage = () => {
         // ビデオの状態を確認
         console.log(`Video state - readyState: ${video.readyState}, currentTime: ${video.currentTime}, videoWidth: ${video.videoWidth}, videoHeight: ${video.videoHeight}`);
 
+        // ビデオフレームをCanvasに描画
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        console.log(`Frame drawn to canvas at ${currentTime.toFixed(2)}s`);
+
         // レイテンシ計測開始
         const detectionStartTime = performance.now();
 
-        // フレームから顔検出
-        const faces = await detector.estimateFaces(video, { flipHorizontal: false });
+        // Canvasから顔検出
+        const faces = await detector.estimateFaces(canvas, { flipHorizontal: false });
         console.log(`Detected ${faces.length} faces at ${currentTime.toFixed(2)}s`);
 
         if (faces.length > 0) {
@@ -393,6 +411,12 @@ const WebmDebugPage = () => {
             />
           </div>
         )}
+
+        {/* Canvas（非表示） */}
+        <canvas
+          ref={canvasRef}
+          style={{ display: 'none' }}
+        />
 
         {/* モデルロード状態 */}
         <div style={statusBoxStyle}>

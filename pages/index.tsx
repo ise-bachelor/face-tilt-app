@@ -168,6 +168,14 @@ const Home: NextPage = () => {
             <a href="/questionnaire-debug" style={debugLinkStyle}>
               アンケートデバッグページ
             </a>
+            {participantInfo?.participantId === '999' && (
+              <>
+                <br />
+                <a href="/webm-debug" style={debugLinkStyle}>
+                  WebM姿勢ログデバッグページ
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

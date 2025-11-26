@@ -26,7 +26,6 @@ const WebmDebugPage = () => {
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [outputFilename, setOutputFilename] = useState<string>('posture_log');
   const [participantId, setParticipantId] = useState<string>('999');
   const [condition, setCondition] = useState<ExperimentCondition>('default');
   const [taskName, setTaskName] = useState<TaskType>('minutes');
@@ -42,14 +41,6 @@ const WebmDebugPage = () => {
   useEffect(() => {
     setIsBrowser(true);
   }, []);
-
-  // id999チェック
-  useEffect(() => {
-    if (isBrowser && (!participantInfo || participantInfo.participantId !== '999')) {
-      alert('このページはデバッグモード（ID: 999）専用です');
-      router.push('/');
-    }
-  }, [isBrowser, participantInfo, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,7 +68,27 @@ const WebmDebugPage = () => {
     baseSetRef.current = false;
 
     const video = videoRef.current;
+
+    // ビデオのメタデータが読み込まれるまで待つ
+    if (video.readyState < 1) {
+      await new Promise<void>((resolve) => {
+        const onLoadedMetadata = () => {
+          video.removeEventListener('loadedmetadata', onLoadedMetadata);
+          resolve();
+        };
+        video.addEventListener('loadedmetadata', onLoadedMetadata);
+      });
+    }
+
     const duration = video.duration;
+    console.log('Video duration:', duration);
+
+    if (!duration || duration === 0 || !isFinite(duration)) {
+      alert('ビデオの長さを取得できませんでした');
+      setIsProcessing(false);
+      return;
+    }
+
     const frameRate = 4; // 4Hz
     const interval = 1 / frameRate;
     const tempLogs: PostureLogEntry[] = [];
@@ -92,6 +103,7 @@ const WebmDebugPage = () => {
     try {
       for (let currentTime = 0; currentTime < duration; currentTime += interval) {
         video.currentTime = currentTime;
+        console.log(`Processing frame at ${currentTime.toFixed(2)}s`);
 
         // ビデオのシークが完了するまで待つ
         await new Promise<void>((resolve) => {
@@ -107,6 +119,7 @@ const WebmDebugPage = () => {
 
         // フレームから顔検出
         const faces = await detector.estimateFaces(video, { flipHorizontal: false });
+        console.log(`Detected ${faces.length} faces at ${currentTime.toFixed(2)}s`);
 
         if (faces.length > 0) {
           const face = faces[0];
@@ -119,6 +132,7 @@ const WebmDebugPage = () => {
             baseRotationRef.current = { ...angles };
             baseTranslationRef.current = { ...translation };
             baseSetRef.current = true;
+            console.log('Base rotation and translation set');
           }
 
           // 頭部姿勢（基準との差分）
@@ -189,14 +203,18 @@ const WebmDebugPage = () => {
           };
 
           tempLogs.push(logEntry);
+          console.log(`Log entry added. Total logs: ${tempLogs.length}`);
+        } else {
+          console.log(`No face detected at ${currentTime.toFixed(2)}s, skipping log entry`);
         }
 
         setProgress(`処理中: ${((currentTime / duration) * 100).toFixed(1)}%`);
       }
 
+      console.log(`Processing complete. Total logs generated: ${tempLogs.length}`);
       setLogs(tempLogs);
       setProgress(`完了: ${tempLogs.length}件のログを生成しました`);
-      console.log(`Generated ${tempLogs.length} posture log entries`);
+      console.log(`Final log count: ${tempLogs.length}`);
     } catch (error) {
       console.error('処理中にエラーが発生しました:', error);
       setProgress('エラーが発生しました');
@@ -250,7 +268,8 @@ const WebmDebugPage = () => {
     );
 
     const csvContent = [headers.join(','), ...rows].join('\n');
-    const filename = `${outputFilename}.csv`;
+    // ファイル名を入力情報から自動生成
+    const filename = `${participantId}_${condition}_${taskName}_posture.csv`;
     downloadCSV(csvContent, filename);
   };
 
@@ -262,7 +281,7 @@ const WebmDebugPage = () => {
     <div style={containerStyle}>
       <h1 style={titleStyle}>WebM デバッグページ（姿勢ログ出力）</h1>
       <p style={descriptionStyle}>
-        WebMファイルをアップロードして、姿勢ログをCSVに出力します（ID: 999専用）
+        WebMファイルをアップロードして、姿勢ログをCSVに出力します
       </p>
 
       <div style={formContainerStyle}>
@@ -315,18 +334,6 @@ const WebmDebugPage = () => {
             <option value="fitts">ポインティングタスク</option>
             <option value="steering">ドラッグタスク</option>
           </select>
-        </div>
-
-        {/* 出力ファイル名 */}
-        <div style={formGroupStyle}>
-          <label style={labelStyle}>出力ファイル名（拡張子なし）</label>
-          <input
-            type="text"
-            value={outputFilename}
-            onChange={(e) => setOutputFilename(e.target.value)}
-            style={inputStyle}
-            placeholder="posture_log"
-          />
         </div>
 
         {/* ビデオプレビュー */}

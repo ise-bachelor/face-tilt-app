@@ -80,8 +80,39 @@ const WebmDebugPage = () => {
       });
     }
 
+    // ビデオデータが読み込まれるまで待つ（readyState >= 2）
+    if (video.readyState < 2) {
+      await new Promise<void>((resolve) => {
+        const onLoadedData = () => {
+          video.removeEventListener('loadeddata', onLoadedData);
+          resolve();
+        };
+        video.addEventListener('loadeddata', onLoadedData);
+      });
+    }
+
+    // 最初のフレームを確実にデコードするため、一瞬再生してから停止
+    video.currentTime = 0;
+    await new Promise<void>((resolve) => {
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      video.addEventListener('seeked', onSeeked);
+    });
+
+    // さらにフレームのレンダリングを待つ
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+
     const duration = video.duration;
     console.log('Video duration:', duration);
+    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
 
     if (!duration || duration === 0 || !isFinite(duration)) {
       alert('ビデオの長さを取得できませんでした');
@@ -113,6 +144,18 @@ const WebmDebugPage = () => {
           };
           video.addEventListener('seeked', onSeeked);
         });
+
+        // フレームがレンダリングされるまでさらに待つ
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              resolve();
+            });
+          });
+        });
+
+        // ビデオの状態を確認
+        console.log(`Video state - readyState: ${video.readyState}, currentTime: ${video.currentTime}, videoWidth: ${video.videoWidth}, videoHeight: ${video.videoHeight}`);
 
         // レイテンシ計測開始
         const detectionStartTime = performance.now();
@@ -345,6 +388,8 @@ const WebmDebugPage = () => {
               style={videoStyle}
               controls
               muted
+              playsInline
+              preload="auto"
             />
           </div>
         )}

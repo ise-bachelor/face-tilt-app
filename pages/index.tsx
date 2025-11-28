@@ -13,6 +13,7 @@ const Home: NextPage = () => {
   const { isPermissionGranted, isLoading, error, requestPermission } = useCamera();
   const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
+  // 実験種別の選択状態
   const [experimentType, setExperimentType] = useState<ExperimentType | null>(null);
 
   // 実験1用の状態
@@ -25,6 +26,9 @@ const Home: NextPage = () => {
 
   // 同意フォームが完了したかどうか
   const consentCompleted = participantInfo !== null;
+
+  // 実験種別が選択されたかどうか
+  const experimentTypeSelected = experimentType !== null;
 
   // 同意フォームの送信処理
   const handleConsentSubmit = (info: ParticipantInfo) => {
@@ -70,9 +74,43 @@ const Home: NextPage = () => {
     }
   };
 
+  // 実験種別が選択されていない場合は実験種別選択画面を表示
+  if (!experimentTypeSelected) {
+    return (
+      <div style={containerStyle}>
+        <h1 style={titleStyle}>実験種別の選択</h1>
+        <div style={formContainerStyle}>
+          <div style={formGroupStyle}>
+            <label style={labelStyle}>参加する実験を選択してください</label>
+            <div style={radioGroupStyle}>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="experiment1"
+                  checked={false}
+                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
+                />
+                <span style={radioTextStyle}>実験1（タイピング・ポインティング・ドラッグタスク）</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="experiment2"
+                  checked={false}
+                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
+                />
+                <span style={radioTextStyle}>実験2（メール作成タスク）</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 同意フォームがまだ完了していない場合は同意フォームを表示
   if (!consentCompleted) {
-    return <ConsentForm onSubmit={handleConsentSubmit} />;
+    return <ConsentForm experimentType={experimentType} onSubmit={handleConsentSubmit} />;
   }
 
   // 同意フォーム完了後は実験設定画面を表示
@@ -105,28 +143,13 @@ const Home: NextPage = () => {
 
       {isPermissionGranted && !isLoading && (
         <div style={formContainerStyle}>
-          {/* 実験種別選択 */}
+          {/* 実験種別の表示（変更不可） */}
           <div style={formGroupStyle}>
             <label style={labelStyle}>実験種別</label>
-            <div style={radioGroupStyle}>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="experiment1"
-                  checked={experimentType === 'experiment1'}
-                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
-                />
-                <span style={radioTextStyle}>実験1（タイピング・ポインティング・ドラッグ）</span>
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="experiment2"
-                  checked={experimentType === 'experiment2'}
-                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
-                />
-                <span style={radioTextStyle}>実験2（メール作成タスク）</span>
-              </label>
+            <div style={experimentTypeDisplayStyle}>
+              {experimentType === 'experiment1'
+                ? '実験1（タイピング・ポインティング・ドラッグタスク）'
+                : '実験2（メール作成タスク）'}
             </div>
           </div>
 
@@ -446,6 +469,16 @@ const debugLinkStyle: React.CSSProperties = {
   fontSize: '14px',
   color: '#666',
   textDecoration: 'underline',
+};
+
+const experimentTypeDisplayStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  backgroundColor: '#e3f2fd',
+  borderRadius: '6px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  color: '#1976d2',
+  border: '2px solid #1976d2',
 };
 
 export default Home;

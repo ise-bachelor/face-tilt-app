@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ParticipantInfo, VideoConsentType, TypingTaskMapping, FittsDifficultyOrder } from '../types';
+import { ParticipantInfo, VideoConsentType, TypingTaskMapping, FittsDifficultyOrder, ExperimentType } from '../types';
 
 interface ConsentFormProps {
+  experimentType: ExperimentType;
   onSubmit: (participantInfo: ParticipantInfo) => void;
 }
 
-export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
+export const ConsentForm: React.FC<ConsentFormProps> = ({ experimentType, onSubmit }) => {
   const [participantId, setParticipantId] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<'male' | 'female' >('male');
@@ -40,7 +41,7 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
       participantId: '999',
       age: 0,
       gender: 'male',
-      handedness: 'right',
+      handedness: 'right', // 実験2でも利き手はright固定
       videoConsent: {
         consentType: 'not_approved',
       },
@@ -97,7 +98,7 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
       participantId: participantId.trim(),
       age: ageNum,
       gender,
-      handedness,
+      handedness: experimentType === 'experiment2' ? 'right' : handedness, // 実験2の場合は右利き固定
       videoConsent: {
         consentType,
         conditions: mainConsent === 'conditional' ? conditions.trim() : undefined,
@@ -171,30 +172,32 @@ export const ConsentForm: React.FC<ConsentFormProps> = ({ onSubmit }) => {
           </div>
         </div>
 
-        {/* 利き手 */}
-        <div style={formGroupStyle}>
-          <label style={labelStyle}>利き手 *</label>
-          <div style={radioGroupStyle}>
-            <label style={radioLabelStyle}>
-              <input
-                type="radio"
-                value="right"
-                checked={handedness === 'right'}
-                onChange={(e) => setHandedness(e.target.value as any)}
-              />
-              <span style={radioTextStyle}>右利き</span>
-            </label>
-            <label style={radioLabelStyle}>
-              <input
-                type="radio"
-                value="left"
-                checked={handedness === 'left'}
-                onChange={(e) => setHandedness(e.target.value as any)}
-              />
-              <span style={radioTextStyle}>左利き</span>
-            </label>
+        {/* 利き手（実験1の場合のみ表示） */}
+        {experimentType === 'experiment1' && (
+          <div style={formGroupStyle}>
+            <label style={labelStyle}>利き手 *</label>
+            <div style={radioGroupStyle}>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="right"
+                  checked={handedness === 'right'}
+                  onChange={(e) => setHandedness(e.target.value as any)}
+                />
+                <span style={radioTextStyle}>右利き</span>
+              </label>
+              <label style={radioLabelStyle}>
+                <input
+                  type="radio"
+                  value="left"
+                  checked={handedness === 'left'}
+                  onChange={(e) => setHandedness(e.target.value as any)}
+                />
+                <span style={radioTextStyle}>左利き</span>
+              </label>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ビデオ画像公開についての同意 */}
         <div style={formGroupStyle}>

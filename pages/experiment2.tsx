@@ -279,6 +279,7 @@ const Experiment2Page = () => {
   const participantIdStr = participantId as string;
   const manualData = getManual(manualType);
   const scenarios = getScenarios(manualType);
+  const isDebugMode = participantIdStr === '999'; // デバッグモードの判定
 
   // タスク完了画面
   if (isTaskCompleted && sessionLog) {
@@ -360,6 +361,7 @@ const Experiment2Page = () => {
           participantId={participantIdStr}
           condition={experiment2Condition}
           manualId={manualType}
+          isDebugMode={isDebugMode}
           onComplete={handleCompleteTask}
         />
       )}

@@ -16,6 +16,7 @@ interface EmailTaskProps {
   participantId: string;
   condition: Experiment2Condition;
   manualId: ManualType;
+  isDebugMode?: boolean; // デバッグモード（制限時間なし）
   onComplete: (sessionLog: EmailSessionLog) => void;
 }
 
@@ -27,6 +28,7 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
   participantId,
   condition,
   manualId,
+  isDebugMode = false,
   onComplete,
 }) => {
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
@@ -42,8 +44,12 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
 
   const currentScenario = scenarios[currentScenarioIndex];
 
-  // 30分タイマー
+  // 30分タイマー（デバッグモードでは無効）
   useEffect(() => {
+    if (isDebugMode) {
+      return; // デバッグモードの場合はタイマーを設定しない
+    }
+
     const timer = setInterval(() => {
       const elapsed = Date.now() - taskStartTime;
       const remaining = TASK_DURATION_MS - elapsed;
@@ -57,7 +63,7 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [taskStartTime]);
+  }, [taskStartTime, isDebugMode]);
 
   // タスク完了処理
   const completeTask = (endReason: 'time_up' | 'empty_send_3times') => {

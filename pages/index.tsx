@@ -3,7 +3,7 @@ import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useCamera } from '../contexts/CameraContext';
 import { useExperiment } from '../contexts/ExperimentContext';
-import { ExperimentCondition, TaskType, ParticipantInfo } from '../types';
+import { ExperimentCondition, TaskType, ParticipantInfo, ExperimentType, Experiment2Condition, ManualType } from '../types';
 import { ConsentForm } from '../components/ConsentForm';
 import { downloadCSV, generateParticipantInfoCSV } from '../utils/downloadUtils';
 
@@ -13,8 +13,15 @@ const Home: NextPage = () => {
   const { isPermissionGranted, isLoading, error, requestPermission } = useCamera();
   const { participantInfo, setParticipantInfo, startSession } = useExperiment();
 
+  const [experimentType, setExperimentType] = useState<ExperimentType | null>(null);
+
+  // 実験1用の状態
   const [condition, setCondition] = useState<ExperimentCondition>('default');
   const [taskName, setTaskName] = useState<TaskType>('minutes');
+
+  // 実験2用の状態
+  const [experiment2Condition, setExperiment2Condition] = useState<Experiment2Condition>('default');
+  const [manualType, setManualType] = useState<ManualType>('A');
 
   // 同意フォームが完了したかどうか
   const consentCompleted = participantInfo !== null;
@@ -42,17 +49,25 @@ const Home: NextPage = () => {
       return;
     }
 
-    // セッションを開始（マッピング情報はparticipantInfoから取得）
-    startSession(
-      participantInfo.participantId,
-      condition,
-      taskName,
-      participantInfo.typingMapping,
-      participantInfo.fittsDifficultyOrder
-    );
+    if (!experimentType) {
+      alert('実験種別を選択してください');
+      return;
+    }
 
-    // タスクページに遷移
-    router.push(`/${taskName}`);
+    if (experimentType === 'experiment1') {
+      // 実験1の場合
+      startSession(
+        participantInfo.participantId,
+        condition,
+        taskName,
+        participantInfo.typingMapping,
+        participantInfo.fittsDifficultyOrder
+      );
+      router.push(`/${taskName}`);
+    } else {
+      // 実験2の場合
+      router.push(`/experiment2?condition=${experiment2Condition}&manual=${manualType}&participantId=${participantInfo.participantId}`);
+    }
   };
 
   // 同意フォームがまだ完了していない場合は同意フォームを表示
@@ -63,7 +78,7 @@ const Home: NextPage = () => {
   // 同意フォーム完了後は実験設定画面を表示
   return (
     <div style={containerStyle}>
-      <h1 style={titleStyle}>条件とタスクを選択してください</h1>
+      <h1 style={titleStyle}>実験設定</h1>
 
       {/* 参加者情報の表示 */}
       <div style={participantInfoBoxStyle}>
@@ -90,76 +105,165 @@ const Home: NextPage = () => {
 
       {isPermissionGranted && !isLoading && (
         <div style={formContainerStyle}>
-          {/* 実験条件 */}
+          {/* 実験種別選択 */}
           <div style={formGroupStyle}>
-            <label style={labelStyle}>実験条件</label>
+            <label style={labelStyle}>実験種別</label>
             <div style={radioGroupStyle}>
               <label style={radioLabelStyle}>
                 <input
                   type="radio"
-                  value="default"
-                  checked={condition === 'default'}
-                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                  value="experiment1"
+                  checked={experimentType === 'experiment1'}
+                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
                 />
-                <span style={radioTextStyle}>Default</span>
+                <span style={radioTextStyle}>実験1（タイピング・ポインティング・ドラッグ）</span>
               </label>
               <label style={radioLabelStyle}>
                 <input
                   type="radio"
-                  value="rotate1"
-                  checked={condition === 'rotate1'}
-                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                  value="experiment2"
+                  checked={experimentType === 'experiment2'}
+                  onChange={(e) => setExperimentType(e.target.value as ExperimentType)}
                 />
-                <span style={radioTextStyle}>Rotate1</span>
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="rotate2"
-                  checked={condition === 'rotate2'}
-                  onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
-                />
-                <span style={radioTextStyle}>Rotate2</span>
+                <span style={radioTextStyle}>実験2（メール作成タスク）</span>
               </label>
             </div>
           </div>
 
-          {/* タスク選択 */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>タスク選択</label>
-            <div style={radioGroupStyle}>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="minutes"
-                  checked={taskName === 'minutes'}
-                  onChange={(e) => setTaskName(e.target.value as TaskType)}
-                />
-                <span style={radioTextStyle}>タイピングタスク</span>
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="fitts"
-                  checked={taskName === 'fitts'}
-                  onChange={(e) => setTaskName(e.target.value as TaskType)}
-                />
-                <span style={radioTextStyle}>ポインティングタスク</span>
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  type="radio"
-                  value="steering"
-                  checked={taskName === 'steering'}
-                  onChange={(e) => setTaskName(e.target.value as TaskType)}
-                />
-                <span style={radioTextStyle}>ドラッグタスク</span>
-              </label>
-            </div>
-          </div>
+          {/* 実験1の設定 */}
+          {experimentType === 'experiment1' && (
+            <>
+              {/* 実験条件 */}
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>実験条件</label>
+                <div style={radioGroupStyle}>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="default"
+                      checked={condition === 'default'}
+                      onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                    />
+                    <span style={radioTextStyle}>Default</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="rotate1"
+                      checked={condition === 'rotate1'}
+                      onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                    />
+                    <span style={radioTextStyle}>Rotate1</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="rotate2"
+                      checked={condition === 'rotate2'}
+                      onChange={(e) => setCondition(e.target.value as ExperimentCondition)}
+                    />
+                    <span style={radioTextStyle}>Rotate2</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* タスク選択 */}
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>タスク選択</label>
+                <div style={radioGroupStyle}>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="minutes"
+                      checked={taskName === 'minutes'}
+                      onChange={(e) => setTaskName(e.target.value as TaskType)}
+                    />
+                    <span style={radioTextStyle}>タイピングタスク</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="fitts"
+                      checked={taskName === 'fitts'}
+                      onChange={(e) => setTaskName(e.target.value as TaskType)}
+                    />
+                    <span style={radioTextStyle}>ポインティングタスク</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="steering"
+                      checked={taskName === 'steering'}
+                      onChange={(e) => setTaskName(e.target.value as TaskType)}
+                    />
+                    <span style={radioTextStyle}>ドラッグタスク</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 実験2の設定 */}
+          {experimentType === 'experiment2' && (
+            <>
+              {/* 実験条件 */}
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>画面回転条件</label>
+                <div style={radioGroupStyle}>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="default"
+                      checked={experiment2Condition === 'default'}
+                      onChange={(e) => setExperiment2Condition(e.target.value as Experiment2Condition)}
+                    />
+                    <span style={radioTextStyle}>Default（画面回転なし）</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="rotate"
+                      checked={experiment2Condition === 'rotate'}
+                      onChange={(e) => setExperiment2Condition(e.target.value as Experiment2Condition)}
+                    />
+                    <span style={radioTextStyle}>Rotate（画面回転あり）</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* マニュアル選択 */}
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>業務マニュアル</label>
+                <div style={radioGroupStyle}>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="A"
+                      checked={manualType === 'A'}
+                      onChange={(e) => setManualType(e.target.value as ManualType)}
+                    />
+                    <span style={radioTextStyle}>Manual A</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="B"
+                      checked={manualType === 'B'}
+                      onChange={(e) => setManualType(e.target.value as ManualType)}
+                    />
+                    <span style={radioTextStyle}>Manual B</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* タスク開始ボタン */}
-          <button onClick={handleStartTask} style={startButtonStyle}>
+          <button
+            onClick={handleStartTask}
+            style={startButtonStyle}
+            disabled={!experimentType}
+          >
             タスク開始
           </button>
 

@@ -380,6 +380,7 @@ const replyFormStyle: React.CSSProperties = {
   flexDirection: 'column',
   padding: '20px',
   overflowY: 'auto',
+  minHeight: 0, // flexコンテナ内でのスクロールを有効にする
 };
 
 const fieldRowStyle: React.CSSProperties = {

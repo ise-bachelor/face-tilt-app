@@ -76,17 +76,26 @@ const RotationPracticePage = () => {
         </div>
       ) : (
         // 練習画面（回転する）
-        <div style={practiceContainerStyle}>
-          <h1 style={practiceTitleStyle}>頭を動かして画面の回転を確認してください</h1>
-          <p style={practiceDescriptionStyle}>
-            上下左右に頭を動かしたり、傾けたりして、
-            <br />
-            画面がどのように回転するか確認してみましょう。
-          </p>
-          <button onClick={handleEndPractice} style={endButtonStyle}>
-            練習を終了
-          </button>
-        </div>
+        <>
+          {/* 四隅のマーカー */}
+          <div style={cornerMarkerTopLeftStyle}>左上</div>
+          <div style={cornerMarkerTopRightStyle}>右上</div>
+          <div style={cornerMarkerBottomLeftStyle}>左下</div>
+          <div style={cornerMarkerBottomRightStyle}>右下</div>
+
+          {/* 中央のコンテンツ */}
+          <div style={practiceContainerStyle}>
+            <h1 style={practiceTitleStyle}>頭を動かして画面の回転を確認してください</h1>
+            <p style={practiceDescriptionStyle}>
+              上下左右に頭を動かしたり、傾けたりして、
+              <br />
+              画面がどのように回転するか確認してみましょう。
+            </p>
+            <button onClick={handleEndPractice} style={endButtonStyle}>
+              練習を終了
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -175,6 +184,43 @@ const endButtonStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: '8px',
   cursor: 'pointer',
+};
+
+// 四隅のマーカースタイル（共通設定）
+const cornerMarkerBaseStyle: React.CSSProperties = {
+  position: 'fixed',
+  padding: '20px 30px',
+  fontSize: '24px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#1976d2',
+  borderRadius: '8px',
+  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+  zIndex: 1,
+};
+
+const cornerMarkerTopLeftStyle: React.CSSProperties = {
+  ...cornerMarkerBaseStyle,
+  top: '30px',
+  left: '30px',
+};
+
+const cornerMarkerTopRightStyle: React.CSSProperties = {
+  ...cornerMarkerBaseStyle,
+  top: '30px',
+  right: '30px',
+};
+
+const cornerMarkerBottomLeftStyle: React.CSSProperties = {
+  ...cornerMarkerBaseStyle,
+  bottom: '30px',
+  left: '30px',
+};
+
+const cornerMarkerBottomRightStyle: React.CSSProperties = {
+  ...cornerMarkerBaseStyle,
+  bottom: '30px',
+  right: '30px',
 };
 
 export default RotationPracticePage;

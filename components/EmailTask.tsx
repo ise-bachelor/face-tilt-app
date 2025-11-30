@@ -17,7 +17,9 @@ interface EmailTaskProps {
   condition: Experiment2Condition;
   manualId: ManualType;
   isDebugMode?: boolean; // デバッグモード（制限時間なし）
+  isPracticeMode?: boolean; // 練習モード
   onComplete: (sessionLog: EmailSessionLog) => void;
+  onPracticeEnd?: () => void; // 練習終了時のコールバック
 }
 
 const TASK_DURATION_MS = 30 * 60 * 1000; // 30分
@@ -29,7 +31,9 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
   condition,
   manualId,
   isDebugMode = false,
+  isPracticeMode = false,
   onComplete,
+  onPracticeEnd,
 }) => {
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
   const [replyText, setReplyText] = useState('');
@@ -169,6 +173,13 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // 練習終了ハンドラ
+  const handlePracticeEnd = () => {
+    if (onPracticeEnd) {
+      onPracticeEnd();
+    }
+  };
+
   // テキストエリアに初期フォーカス
   useEffect(() => {
     if (textareaRef.current) {
@@ -255,9 +266,18 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
               </div>
 
               {/* 送信ボタン */}
-              <button onClick={handleSend} style={sendButtonStyle}>
-                この内容で送信
-              </button>
+              <div style={buttonContainerStyle}>
+                <button onClick={handleSend} style={sendButtonStyle}>
+                  この内容で送信
+                </button>
+
+                {/* 練習モードの場合は「本番のメールを送信する」ボタンを表示 */}
+                {isPracticeMode && (
+                  <button onClick={handlePracticeEnd} style={practiceEndButtonStyle}>
+                    本番のメールを送信する
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -427,6 +447,13 @@ const textareaStyle: React.CSSProperties = {
   minHeight: '150px',
 };
 
+const buttonContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: '12px',
+};
+
 const sendButtonStyle: React.CSSProperties = {
   padding: '12px 24px',
   fontSize: '16px',
@@ -436,5 +463,15 @@ const sendButtonStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
-  alignSelf: 'flex-end',
+};
+
+const practiceEndButtonStyle: React.CSSProperties = {
+  padding: '12px 24px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '6px',
+  cursor: 'pointer',
 };

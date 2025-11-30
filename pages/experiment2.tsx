@@ -283,6 +283,15 @@ const Experiment2Page = () => {
   const manualData = getManual(manualType);
   const scenarios = getScenarios(manualType);
   const isDebugMode = participantIdStr === '999'; // デバッグモードの判定
+  const isPracticeMode = manualType === 'P'; // 練習モードの判定
+
+  // 練習終了ハンドラ
+  const handlePracticeEnd = () => {
+    // 録画停止
+    stopRecording();
+    // ホームページに戻る
+    router.push('/');
+  };
 
   // タスク完了画面
   if (isTaskCompleted && sessionLog) {
@@ -365,7 +374,9 @@ const Experiment2Page = () => {
           condition={experiment2Condition}
           manualId={manualType}
           isDebugMode={isDebugMode}
+          isPracticeMode={isPracticeMode}
           onComplete={handleCompleteTask}
+          onPracticeEnd={handlePracticeEnd}
         />
       )}
     </div>

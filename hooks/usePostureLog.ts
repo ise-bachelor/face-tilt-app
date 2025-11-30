@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation, ExperimentSession } from '../types';
+import { PostureLogEntry, HeadPose, HeadTranslation, ScreenRotation, ExperimentSession, NonCoupledRotationDirection, NonCoupledRotationState } from '../types';
 
 interface UsePostureLogProps {
   session: ExperimentSession | null;
@@ -8,6 +8,8 @@ interface UsePostureLogProps {
   screenRotation: ScreenRotation;
   latency: number;
   isRecording: boolean;
+  nonCoupledRotationDirection?: NonCoupledRotationDirection;
+  nonCoupledRotationState?: NonCoupledRotationState;
 }
 
 export const usePostureLog = ({
@@ -17,9 +19,12 @@ export const usePostureLog = ({
   screenRotation,
   latency,
   isRecording,
+  nonCoupledRotationDirection = null,
+  nonCoupledRotationState = null,
 }: UsePostureLogProps) => {
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   // 最新の値を参照するためのref
   const headPoseRef = useRef(headPose);
@@ -27,6 +32,8 @@ export const usePostureLog = ({
   const screenRotationRef = useRef(screenRotation);
   const latencyRef = useRef(latency);
   const sessionRef = useRef(session);
+  const nonCoupledRotationDirectionRef = useRef(nonCoupledRotationDirection);
+  const nonCoupledRotationStateRef = useRef(nonCoupledRotationState);
 
   // refを常に最新の値に更新
   useEffect(() => {
@@ -35,17 +42,28 @@ export const usePostureLog = ({
     screenRotationRef.current = screenRotation;
     latencyRef.current = latency;
     sessionRef.current = session;
-  }, [headPose, headTranslation, screenRotation, latency, session]);
+    nonCoupledRotationDirectionRef.current = nonCoupledRotationDirection;
+    nonCoupledRotationStateRef.current = nonCoupledRotationState;
+  }, [headPose, headTranslation, screenRotation, latency, session, nonCoupledRotationDirection, nonCoupledRotationState]);
 
   useEffect(() => {
     if (isRecording && session) {
+      // 開始時刻を設定（最初のログ記録時）
+      if (startTimeRef.current === null) {
+        startTimeRef.current = Date.now();
+      }
+
       // 4Hz = 250ms間隔でログを記録
       intervalIdRef.current = setInterval(() => {
         const currentSession = sessionRef.current;
-        if (!currentSession) return;
+        if (!currentSession || startTimeRef.current === null) return;
+
+        // 開始時からの経過時間(ms)を計算
+        const elapsedTimeMs = Date.now() - startTimeRef.current;
+
         console.log("Logging posture data...");
         const logEntry: PostureLogEntry = {
-          timestamp: Number((Date.now() / 1000).toFixed(4)), // 秒単位（小数第4位まで）
+          timestamp: elapsedTimeMs, // 開始時からの経過時間(ms)
           participant_id: currentSession.participant_id,
           condition: currentSession.condition,
           task_name: currentSession.task_name,
@@ -63,10 +81,16 @@ export const usePostureLog = ({
           Screen_Roll: screenRotationRef.current.roll,
           // 処理レイテンシ
           Latency_ms: latencyRef.current,
+          // 非連動型回転イベント
+          NonCoupled_Rotation_Direction: nonCoupledRotationDirectionRef.current,
+          NonCoupled_Rotation_State: nonCoupledRotationStateRef.current,
         };
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
       }, 250); // 4Hz = 250ms
+    } else {
+      // 録画停止時に開始時刻をリセット
+      startTimeRef.current = null;
     }
 
     return () => {
@@ -101,6 +125,8 @@ export const usePostureLog = ({
       'Screen_Yaw',
       'Screen_Roll',
       'Latency_ms',
+      'NonCoupled_Rotation_Direction',
+      'NonCoupled_Rotation_State',
     ];
 
     // CSVボディ
@@ -120,6 +146,8 @@ export const usePostureLog = ({
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),
         log.Latency_ms.toFixed(2),
+        log.NonCoupled_Rotation_Direction || '',
+        log.NonCoupled_Rotation_State || '',
       ].join(',')
     );
 

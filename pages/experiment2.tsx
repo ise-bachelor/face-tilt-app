@@ -30,11 +30,12 @@ const Experiment2Page = () => {
   const experiment1Condition: ExperimentCondition =
     condition === 'rotate' ? 'rotate1' : 'default';
 
-  const { rotation, headPose, headTranslation, screenRotation, latency, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, screenRotation, latency, handleStart, nonCoupledRotationDirection, nonCoupledRotationState } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
     condition: experiment1Condition,
+    enableNonCoupledRotation: condition === 'rotate', // rotate条件の場合のみ非連動型回転を有効化
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
@@ -59,6 +60,8 @@ const Experiment2Page = () => {
     screenRotation,
     latency,
     isRecording,
+    nonCoupledRotationDirection,
+    nonCoupledRotationState,
   });
 
   // パラメータチェック

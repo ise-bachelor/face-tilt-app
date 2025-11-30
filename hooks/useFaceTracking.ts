@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FaceLandmarksDetector, Rotation, ExperimentCondition, HeadPose, ScreenRotation, HeadTranslation } from '../types';
+import type { FaceLandmarksDetector, Rotation, ExperimentCondition, HeadPose, ScreenRotation, HeadTranslation, NonCoupledRotationDirection, NonCoupledRotationState } from '../types';
 import { KalmanFilter } from '../utils/KalmanFilter';
 import { calculateFaceAnglesWithTranslation } from '../utils/faceAngles';
 
@@ -8,6 +8,7 @@ type UseFaceTrackingArgs = {
   detector: FaceLandmarksDetector | null;
   isModelLoaded: boolean;
   condition?: ExperimentCondition;
+  enableNonCoupledRotation?: boolean; // 非連動型回転を有効にするか
 };
 
 // 感度係数
@@ -19,9 +20,63 @@ const TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
 // 画面回転の最大角度
 const MAX_ROTATION_ANGLE = 60;
 
+// 非連動型回転の順序
+const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
+  'Pitch',
+  'RollReverse',
+  'Yaw',
+  'PitchReverse',
+  'Roll',
+  'YawReverse',
+];
+
+// 非連動型回転のタイミング
+const NON_COUPLED_ROTATION_INTERVAL_MS = 3 * 60 * 1000; // 3分
+const NON_COUPLED_ROTATION_DURATION_MS = 1000; // 1秒
+const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
+
 // 値を指定範囲にクランプする関数
 const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
+};
+
+// 非連動型回転を計算する関数
+const calculateNonCoupledRotation = (
+  direction: NonCoupledRotationDirection,
+  elapsedTime: number
+): Rotation => {
+  if (!direction) {
+    return { rotateX: 0, rotateY: 0, rotateZ: 0 };
+  }
+
+  // 1秒かけて60度まで回転
+  const progress = Math.min(elapsedTime / NON_COUPLED_ROTATION_DURATION_MS, 1.0);
+  const angle = progress * MAX_ROTATION_ANGLE;
+
+  const rotation: Rotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
+
+  switch (direction) {
+    case 'Pitch':
+      rotation.rotateX = angle;
+      break;
+    case 'PitchReverse':
+      rotation.rotateX = -angle;
+      break;
+    case 'Yaw':
+      rotation.rotateY = angle;
+      break;
+    case 'YawReverse':
+      rotation.rotateY = -angle;
+      break;
+    case 'Roll':
+      rotation.rotateZ = angle;
+      break;
+    case 'RollReverse':
+      rotation.rotateZ = -angle;
+      break;
+  }
+
+  return rotation;
 };
 
 export const useFaceTracking = ({
@@ -29,6 +84,7 @@ export const useFaceTracking = ({
   detector,
   isModelLoaded,
   condition = 'rotate1',
+  enableNonCoupledRotation = false,
 }: UseFaceTrackingArgs) => {
   const [rotation, setRotation] = useState<Rotation>({
     rotateX: 0,
@@ -53,6 +109,10 @@ export const useFaceTracking = ({
   const [isStarted, setIsStarted] = useState(false);
   const [latency, setLatency] = useState(0);
 
+  // 非連動型回転の状態
+  const [nonCoupledRotationDirection, setNonCoupledRotationDirection] = useState<NonCoupledRotationDirection>(null);
+  const [nonCoupledRotationState, setNonCoupledRotationState] = useState<NonCoupledRotationState>(null);
+
   const baseRotationRef = useRef<Rotation>({
     rotateX: 0,
     rotateY: 0,
@@ -71,6 +131,12 @@ export const useFaceTracking = ({
   const animationFrameRef = useRef<number>();
   const detectionStartTimeRef = useRef<number>(0);
 
+  // 非連動型回転の管理用ref
+  const nonCoupledRotationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const nonCoupledRotationSequenceRef = useRef<number>(0); // 回転シーケンスのインデックス
+  const nonCoupledRotationStartTimeRef = useRef<number>(0);
+  const taskStartTimeRef = useRef<number>(0);
+
   // 画面回転用カルマンフィルタ（応答性を重視した設定）
   const screenRotationFiltersRef = useRef({
     rotateX: new KalmanFilter(0.01, 0.1),
@@ -85,6 +151,58 @@ export const useFaceTracking = ({
       rotateZ: screenRotationFiltersRef.current.rotateZ.update(newRotation.rotateZ),
     };
   };
+
+  // 非連動型回転を開始する関数
+  const startNonCoupledRotation = () => {
+    if (!enableNonCoupledRotation) return;
+
+    const direction = NON_COUPLED_ROTATION_SEQUENCE[nonCoupledRotationSequenceRef.current % NON_COUPLED_ROTATION_SEQUENCE.length];
+    console.log(`非連動型回転開始: ${direction}`);
+
+    setNonCoupledRotationDirection(direction);
+    setNonCoupledRotationState('rotating');
+    nonCoupledRotationStartTimeRef.current = Date.now();
+
+    // 1秒後に回転完了（pause状態に移行）
+    setTimeout(() => {
+      setNonCoupledRotationState('paused');
+
+      // 2秒後に非連動型回転を終了（ユーザに再連動）
+      setTimeout(() => {
+        setNonCoupledRotationDirection(null);
+        setNonCoupledRotationState(null);
+        nonCoupledRotationSequenceRef.current += 1;
+      }, NON_COUPLED_ROTATION_PAUSE_MS);
+    }, NON_COUPLED_ROTATION_DURATION_MS);
+  };
+
+  // 非連動型回転のタイマー管理
+  useEffect(() => {
+    if (!isStarted || !enableNonCoupledRotation) {
+      // タイマーをクリア
+      if (nonCoupledRotationTimerRef.current) {
+        clearInterval(nonCoupledRotationTimerRef.current);
+        nonCoupledRotationTimerRef.current = null;
+      }
+      return;
+    }
+
+    // タスク開始時刻を記録
+    taskStartTimeRef.current = Date.now();
+    nonCoupledRotationSequenceRef.current = 0;
+
+    // 3分ごとに非連動型回転を開始
+    nonCoupledRotationTimerRef.current = setInterval(() => {
+      startNonCoupledRotation();
+    }, NON_COUPLED_ROTATION_INTERVAL_MS);
+
+    return () => {
+      if (nonCoupledRotationTimerRef.current) {
+        clearInterval(nonCoupledRotationTimerRef.current);
+        nonCoupledRotationTimerRef.current = null;
+      }
+    };
+  }, [isStarted, enableNonCoupledRotation]);
 
   useEffect(() => {
     if (!detector || !isModelLoaded || !videoRef.current) return;
@@ -131,8 +249,21 @@ export const useFaceTracking = ({
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
               let rawRotation: Rotation;
-              if (condition === 'rotate1' || condition === 'rotate2') {
-                // Rotate条件: 画面が回転する
+
+              // 非連動型回転が有効な場合はそれを優先
+              if (nonCoupledRotationDirection && nonCoupledRotationState) {
+                const elapsedTime = Date.now() - nonCoupledRotationStartTimeRef.current;
+
+                if (nonCoupledRotationState === 'rotating') {
+                  // 回転中（1秒かけて60度まで）
+                  finalRotation = calculateNonCoupledRotation(nonCoupledRotationDirection, elapsedTime);
+                } else {
+                  // 停止中（最大角度を維持）
+                  finalRotation = calculateNonCoupledRotation(nonCoupledRotationDirection, NON_COUPLED_ROTATION_DURATION_MS);
+                }
+                setRotation(finalRotation);
+              } else if (condition === 'rotate1' || condition === 'rotate2') {
+                // Rotate条件: 画面が回転する（ユーザの姿勢に連動）
                 // 並行移動による回転への寄与を計算
                 // Tx (左右) → Yaw (rotateY): 右(+)→rotateY(+), 左(-)→rotateY(-)
                 // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
@@ -230,6 +361,8 @@ export const useFaceTracking = ({
     latency,
     isStarted,
     handleStart,
-    handleStop
+    handleStop,
+    nonCoupledRotationDirection,
+    nonCoupledRotationState,
   };
 };

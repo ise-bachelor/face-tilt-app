@@ -230,28 +230,35 @@ export const useFaceTracking = ({
                 baseRotationSetRef.current = true;
               }
 
-              // 頭部姿勢（基準との差分）- フィルタなしで直接使用
-              const headPoseDiff: HeadPose = {
-                pitch: angles.rotateX - baseRotationRef.current.rotateX,
-                yaw: angles.rotateY - baseRotationRef.current.rotateY,
-                roll: angles.rotateZ - baseRotationRef.current.rotateZ,
-              };
-              setHeadPose(headPoseDiff);
-
-              // 頭部並行移動（基準との差分）- フィルタなしで直接使用
-              const headTranslationDiff: HeadTranslation = {
-                tx: translation.tx - baseTranslationRef.current.tx,
-                ty: translation.ty - baseTranslationRef.current.ty,
-                tz: translation.tz - baseTranslationRef.current.tz,
-              };
-              setHeadTranslation(headTranslationDiff);
-
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
               let rawRotation: Rotation;
+              let headPoseDiff: HeadPose;
+              let headTranslationDiff: HeadTranslation;
 
               // 非連動型回転が有効な場合はそれを優先
               if (nonCoupledRotationDirection && nonCoupledRotationState) {
+                // 非連動型回転中は基準姿勢を現在の姿勢に更新し続ける
+                // これにより、ユーザの姿勢入力が画面回転に反映されない
+                baseRotationRef.current = { ...angles };
+                baseTranslationRef.current = { ...translation };
+
+                // 頭部姿勢は常に0（基準姿勢を更新しているため）
+                headPoseDiff = {
+                  pitch: 0,
+                  yaw: 0,
+                  roll: 0,
+                };
+                setHeadPose(headPoseDiff);
+
+                // 頭部並行移動も常に0
+                headTranslationDiff = {
+                  tx: 0,
+                  ty: 0,
+                  tz: 0,
+                };
+                setHeadTranslation(headTranslationDiff);
+
                 const elapsedTime = Date.now() - nonCoupledRotationStartTimeRef.current;
 
                 if (nonCoupledRotationState === 'rotating') {
@@ -262,43 +269,61 @@ export const useFaceTracking = ({
                   finalRotation = calculateNonCoupledRotation(nonCoupledRotationDirection, NON_COUPLED_ROTATION_DURATION_MS);
                 }
                 setRotation(finalRotation);
-              } else if (condition === 'rotate1' || condition === 'rotate2') {
-                // Rotate条件: 画面が回転する（ユーザの姿勢に連動）
-                // 並行移動による回転への寄与を計算
-                // Tx (左右) → Yaw (rotateY): 右(+)→rotateY(+), 左(-)→rotateY(-)
-                // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
-                // Tz (前後) → Pitch (rotateX): 前(+)→rotateX(+), 後(-)→rotateX(-)
-
-                // rotate2は回転量を2倍にする
-                const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
-
-                rawRotation = {
-                  // Pitch: 頭部回転 + Ty + Tz による寄与
-                  rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY
-                    + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY
-                    + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
-                  // Yaw: 頭部回転 + Tx による寄与
-                  rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY
-                    + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
-                  // Roll: 頭部回転のみ
-                  rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
-                };
-
-                // 画面回転にカルマンフィルタを適用
-                const filtered = applyScreenRotationFilter(rawRotation);
-
-                // 60度制限を適用
-                finalRotation = {
-                  rotateX: clamp(filtered.rotateX, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
-                  rotateY: clamp(filtered.rotateY, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
-                  rotateZ: clamp(filtered.rotateZ, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
-                };
-                setRotation(finalRotation);
               } else {
-                // Default条件: 画面は回転しない
-                rawRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
-                finalRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
-                setRotation(finalRotation);
+                // ユーザ連動モード: 頭部姿勢（基準との差分）を計算
+                headPoseDiff = {
+                  pitch: angles.rotateX - baseRotationRef.current.rotateX,
+                  yaw: angles.rotateY - baseRotationRef.current.rotateY,
+                  roll: angles.rotateZ - baseRotationRef.current.rotateZ,
+                };
+                setHeadPose(headPoseDiff);
+
+                // 頭部並行移動（基準との差分）を計算
+                headTranslationDiff = {
+                  tx: translation.tx - baseTranslationRef.current.tx,
+                  ty: translation.ty - baseTranslationRef.current.ty,
+                  tz: translation.tz - baseTranslationRef.current.tz,
+                };
+                setHeadTranslation(headTranslationDiff);
+
+                if (condition === 'rotate1' || condition === 'rotate2') {
+                  // Rotate条件: 画面が回転する（ユーザの姿勢に連動）
+                  // 並行移動による回転への寄与を計算
+                  // Tx (左右) → Yaw (rotateY): 右(+)→rotateY(+), 左(-)→rotateY(-)
+                  // Ty (上下) → Pitch (rotateX): 上(-)→rotateX(-), 下(+)→rotateX(+)
+                  // Tz (前後) → Pitch (rotateX): 前(+)→rotateX(+), 後(-)→rotateX(-)
+
+                  // rotate2は回転量を2倍にする
+                  const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
+
+                  rawRotation = {
+                    // Pitch: 頭部回転 + Ty + Tz による寄与
+                    rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY
+                      + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY
+                      + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
+                    // Yaw: 頭部回転 + Tx による寄与
+                    rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY
+                      + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
+                    // Roll: 頭部回転のみ
+                    rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
+                  };
+
+                  // 画面回転にカルマンフィルタを適用
+                  const filtered = applyScreenRotationFilter(rawRotation);
+
+                  // 60度制限を適用
+                  finalRotation = {
+                    rotateX: clamp(filtered.rotateX, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                    rotateY: clamp(filtered.rotateY, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                    rotateZ: clamp(filtered.rotateZ, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                  };
+                  setRotation(finalRotation);
+                } else {
+                  // Default条件: 画面は回転しない
+                  rawRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
+                  finalRotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
+                  setRotation(finalRotation);
+                }
               }
 
               // 画面回転の値を記録（カルマンフィルタ後）

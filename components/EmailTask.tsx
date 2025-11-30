@@ -407,15 +407,15 @@ const fieldInputStyle: React.CSSProperties = {
 };
 
 const bodyContainerStyle: React.CSSProperties = {
-  flex: 1,
   display: 'flex',
   flexDirection: 'column',
+  flex: 1, // 利用可能なスペースを使用
   marginBottom: '15px',
   border: '1px solid #ddd',
   borderRadius: '4px',
   backgroundColor: '#fafafa',
-  minHeight: 0, // flexコンテナ内での縮小を許可
-  overflow: 'hidden', // 子要素がはみ出さないように
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const bodyHeaderStyle: React.CSSProperties = {

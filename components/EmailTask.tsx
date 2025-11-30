@@ -274,7 +274,7 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
                 {/* 練習モードの場合は「本番のメールを送信する」ボタンを表示 */}
                 {isPracticeMode && (
                   <button onClick={handlePracticeEnd} style={practiceEndButtonStyle}>
-                    本番のメールを送信する
+                    送信する
                   </button>
                 )}
               </div>

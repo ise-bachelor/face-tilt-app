@@ -342,6 +342,8 @@ const customerEmailContainerStyle: React.CSSProperties = {
   flexDirection: 'column',
   borderBottom: '2px solid #ddd',
   backgroundColor: 'white',
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const replyEmailContainerStyle: React.CSSProperties = {
@@ -349,6 +351,8 @@ const replyEmailContainerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   backgroundColor: 'white',
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const panelHeaderStyle: React.CSSProperties = {

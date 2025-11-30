@@ -414,6 +414,8 @@ const bodyContainerStyle: React.CSSProperties = {
   border: '1px solid #ddd',
   borderRadius: '4px',
   backgroundColor: '#fafafa',
+  minHeight: 0, // flexコンテナ内での縮小を許可
+  overflow: 'hidden', // 子要素がはみ出さないように
 };
 
 const bodyHeaderStyle: React.CSSProperties = {
@@ -445,7 +447,8 @@ const textareaStyle: React.CSSProperties = {
   border: 'none',
   resize: 'none',
   outline: 'none',
-  minHeight: '150px',
+  minHeight: '100px', // 最小高さを小さくして柔軟性を向上
+  overflow: 'auto', // スクロール可能にする
 };
 
 const buttonContainerStyle: React.CSSProperties = {
@@ -453,6 +456,8 @@ const buttonContainerStyle: React.CSSProperties = {
   justifyContent: 'flex-end',
   alignItems: 'center',
   gap: '12px',
+  flexShrink: 0, // ボタンが縮小されないようにする
+  marginTop: '10px', // 上部に余白を追加
 };
 
 const sendButtonStyle: React.CSSProperties = {

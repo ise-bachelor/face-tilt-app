@@ -265,7 +265,7 @@ const Home: NextPage = () => {
                       checked={manualType === 'A'}
                       onChange={(e) => setManualType(e.target.value as ManualType)}
                     />
-                    <span style={radioTextStyle}>Manual A</span>
+                    <span style={radioTextStyle}>Manual A（本番用）</span>
                   </label>
                   <label style={radioLabelStyle}>
                     <input
@@ -274,11 +274,33 @@ const Home: NextPage = () => {
                       checked={manualType === 'B'}
                       onChange={(e) => setManualType(e.target.value as ManualType)}
                     />
-                    <span style={radioTextStyle}>Manual B</span>
+                    <span style={radioTextStyle}>Manual B（本番用）</span>
+                  </label>
+                  <label style={radioLabelStyle}>
+                    <input
+                      type="radio"
+                      value="P"
+                      checked={manualType === 'P'}
+                      onChange={(e) => setManualType(e.target.value as ManualType)}
+                    />
+                    <span style={radioTextStyle}>Manual P（練習用 - タスク練習モード）</span>
                   </label>
                 </div>
               </div>
             </>
+          )}
+
+          {/* 練習モードへのリンク */}
+          {experimentType === 'experiment2' && (
+            <div style={practiceModeLinkContainerStyle}>
+              <p style={practiceModeLabelStyle}>タスクなしの回転練習モード:</p>
+              <button
+                onClick={() => router.push('/rotation-practice')}
+                style={practiceModeButtonStyle}
+              >
+                回転練習モードへ
+              </button>
+            </div>
           )}
 
           {/* タスク開始ボタン */}
@@ -479,6 +501,35 @@ const experimentTypeDisplayStyle: React.CSSProperties = {
   fontWeight: 'bold',
   color: '#1976d2',
   border: '2px solid #1976d2',
+};
+
+const practiceModeLinkContainerStyle: React.CSSProperties = {
+  marginTop: '20px',
+  marginBottom: '20px',
+  padding: '20px',
+  backgroundColor: '#fff3e0',
+  borderRadius: '8px',
+  border: '2px solid #ff9800',
+  textAlign: 'center',
+};
+
+const practiceModeLabelStyle: React.CSSProperties = {
+  fontSize: '14px',
+  fontWeight: 'bold',
+  color: '#e65100',
+  marginBottom: '10px',
+};
+
+const practiceModeButtonStyle: React.CSSProperties = {
+  padding: '12px 24px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#ff9800',
+  border: 'none',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  transition: 'background-color 0.3s',
 };
 
 export default Home;

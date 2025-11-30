@@ -11,7 +11,16 @@ export type Rotation = {
 export type ExperimentCondition = 'rotate1' | 'rotate2' | 'default';
 
 // タスク種類
-export type TaskType = 'fitts' | 'steering' | 'minutes';
+export type TaskType = 'fitts' | 'steering' | 'minutes' | 'experiment2';
+
+// 実験種別
+export type ExperimentType = 'experiment1' | 'experiment2';
+
+// 実験2の条件
+export type Experiment2Condition = 'default' | 'rotate';
+
+// 実験2のマニュアル種別
+export type ManualType = 'A' | 'B';
 
 // タイピングタスクのマッピング（条件→課題文）
 export type TypingTaskMapping = 'T1' | 'T2' | 'T3';
@@ -303,4 +312,55 @@ export interface CsqVrResponse {
   vestibularScore: number;  // vestibularA + vestibularB
   oculomotorScore: number;  // oculomotorA + oculomotorB
   totalScore: number;       // 上記3カテゴリの合計
+}
+
+// ===== 実験2: メール作成タスク =====
+
+// メールシナリオ
+export interface EmailScenario {
+  id: string;              // 例: "A01", "B01"
+  manualType: ManualType;  // 'A' or 'B'
+  categories: string[];    // 想定される参照カテゴリ
+  customerEmail: string;   // 顧客からのメール本文
+}
+
+// メール作成タスク: キー入力ログ
+export interface EmailKeyLog {
+  key: string;
+  timestamp_ms: number;
+  is_backspace: boolean;
+  is_delete: boolean;
+  is_paste: boolean;
+}
+
+// メール作成タスク: 各シナリオのログ
+export interface EmailScenarioLog {
+  participant_id: string;
+  condition: Experiment2Condition;
+  manual_id: ManualType;
+  scenario_id: string;
+  scenario_order_index: number;
+  reply_start_time: number;     // 返信開始時刻（タイムスタンプ）
+  reply_send_time: number;      // 送信ボタン押下時刻
+  reply_duration_ms: number;    // 返信に要した時間
+  reply_body_text: string;      // 最終的に送信された本文（回答部分のみ）
+  reply_body_length_chars: number;  // 文字数
+  is_empty_body: boolean;       // 回答部分が空だったか
+  keypress_count_total: number; // 総キー入力数
+  backspace_count: number;      // Backspace数
+  delete_count: number;         // Delete数
+  paste_count: number;          // ペースト数
+  key_logs: EmailKeyLog[];      // 詳細なキー入力ログ
+}
+
+// メール作成タスク: セッションレベルの情報
+export interface EmailSessionLog {
+  participant_id: string;
+  condition: Experiment2Condition;
+  manual_id: ManualType;
+  task_start_time: number;
+  task_end_time: number;
+  end_reason: 'time_up' | 'empty_send_3times';  // 終了理由
+  scenarios_completed: number;  // 完了したシナリオ数
+  scenario_logs: EmailScenarioLog[];  // 各シナリオのログ
 }

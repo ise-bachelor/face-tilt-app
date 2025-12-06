@@ -31,9 +31,9 @@ const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
 ];
 
 // 非連動型回転のタイミング
-const NON_COUPLED_ROTATION_INTERVAL_MS = 3 * 60 * 1000; // 3分
-const NON_COUPLED_ROTATION_DURATION_MS = 1000; // 1秒
-const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
+const NON_COUPLED_ROTATION_INTERVAL_MS = 3 * 60 * 1000; // 本番3分
+const NON_COUPLED_ROTATION_DURATION_MS = 3000; // 3秒
+const NON_COUPLED_ROTATION_PAUSE_MS = 1000; // 1秒
 
 // 値を指定範囲にクランプする関数
 const clamp = (value: number, min: number, max: number): number => {
@@ -49,7 +49,7 @@ const calculateNonCoupledRotation = (
     return { rotateX: 0, rotateY: 0, rotateZ: 0 };
   }
 
-  // 1秒かけて60度まで回転
+  // 10秒かけて60度まで回転
   const progress = Math.min(elapsedTime / NON_COUPLED_ROTATION_DURATION_MS, 1.0);
   const angle = progress * MAX_ROTATION_ANGLE;
 
@@ -136,6 +136,8 @@ export const useFaceTracking = ({
   const nonCoupledRotationSequenceRef = useRef<number>(0); // 回転シーケンスのインデックス
   const nonCoupledRotationStartTimeRef = useRef<number>(0);
   const taskStartTimeRef = useRef<number>(0);
+  const nonCoupledRotationDirectionRef = useRef<NonCoupledRotationDirection>(null);
+  const nonCoupledRotationStateRef = useRef<NonCoupledRotationState>(null);
 
   // 画面回転用カルマンフィルタ（応答性を重視した設定）
   const screenRotationFiltersRef = useRef({
@@ -161,16 +163,21 @@ export const useFaceTracking = ({
 
     setNonCoupledRotationDirection(direction);
     setNonCoupledRotationState('rotating');
+    nonCoupledRotationDirectionRef.current = direction;
+    nonCoupledRotationStateRef.current = 'rotating';
     nonCoupledRotationStartTimeRef.current = Date.now();
 
-    // 1秒後に回転完了（pause状態に移行）
+    // 10秒後に回転完了（pause状態に移行）
     setTimeout(() => {
       setNonCoupledRotationState('paused');
+      nonCoupledRotationStateRef.current = 'paused';
 
-      // 2秒後に非連動型回転を終了（ユーザに再連動）
+      // 5秒後に非連動型回転を終了（ユーザに再連動）
       setTimeout(() => {
         setNonCoupledRotationDirection(null);
         setNonCoupledRotationState(null);
+        nonCoupledRotationDirectionRef.current = null;
+        nonCoupledRotationStateRef.current = null;
         nonCoupledRotationSequenceRef.current += 1;
       }, NON_COUPLED_ROTATION_PAUSE_MS);
     }, NON_COUPLED_ROTATION_DURATION_MS);
@@ -204,6 +211,15 @@ export const useFaceTracking = ({
     };
   }, [isStarted, enableNonCoupledRotation]);
 
+  // 非連動型回転の状態をrefに保持して、検出ループで即座に参照できるようにする
+  useEffect(() => {
+    nonCoupledRotationDirectionRef.current = nonCoupledRotationDirection;
+  }, [nonCoupledRotationDirection]);
+
+  useEffect(() => {
+    nonCoupledRotationStateRef.current = nonCoupledRotationState;
+  }, [nonCoupledRotationState]);
+
   useEffect(() => {
     if (!detector || !isModelLoaded || !videoRef.current) return;
 
@@ -233,57 +249,40 @@ export const useFaceTracking = ({
               // 実験条件に応じて画面回転を設定
               let finalRotation: Rotation;
               let rawRotation: Rotation;
-              let headPoseDiff: HeadPose;
-              let headTranslationDiff: HeadTranslation;
+              let headPoseDiff: HeadPose = {
+                pitch: angles.rotateX - baseRotationRef.current.rotateX,
+                yaw: angles.rotateY - baseRotationRef.current.rotateY,
+                roll: angles.rotateZ - baseRotationRef.current.rotateZ,
+              };
+              let headTranslationDiff: HeadTranslation = {
+                tx: translation.tx - baseTranslationRef.current.tx,
+                ty: translation.ty - baseTranslationRef.current.ty,
+                tz: translation.tz - baseTranslationRef.current.tz,
+              };
 
-              // 非連動型回転が有効な場合はそれを優先
-              if (nonCoupledRotationDirection && nonCoupledRotationState) {
-                // 非連動型回転中は基準姿勢を現在の姿勢に更新し続ける
-                // これにより、ユーザの姿勢入力が画面回転に反映されない
-                baseRotationRef.current = { ...angles };
-                baseTranslationRef.current = { ...translation };
+              const currentNonCoupledDirection = nonCoupledRotationDirectionRef.current;
+              const currentNonCoupledState = nonCoupledRotationStateRef.current;
 
-                // 頭部姿勢は常に0（基準姿勢を更新しているため）
-                headPoseDiff = {
-                  pitch: 0,
-                  yaw: 0,
-                  roll: 0,
-                };
+              // 非連動型回転が有効な場合はそれを優先（ユーザ姿勢は記録だけ行い、回転には反映しない）
+              if (currentNonCoupledDirection && currentNonCoupledState) {
                 setHeadPose(headPoseDiff);
-
-                // 頭部並行移動も常に0
-                headTranslationDiff = {
-                  tx: 0,
-                  ty: 0,
-                  tz: 0,
-                };
                 setHeadTranslation(headTranslationDiff);
 
                 const elapsedTime = Date.now() - nonCoupledRotationStartTimeRef.current;
 
-                if (nonCoupledRotationState === 'rotating') {
-                  // 回転中（1秒かけて60度まで）
-                  finalRotation = calculateNonCoupledRotation(nonCoupledRotationDirection, elapsedTime);
+                if (currentNonCoupledState === 'rotating') {
+                  // 回転中（10秒かけて60度まで）
+                  finalRotation = calculateNonCoupledRotation(currentNonCoupledDirection, elapsedTime);
                 } else {
                   // 停止中（最大角度を維持）
-                  finalRotation = calculateNonCoupledRotation(nonCoupledRotationDirection, NON_COUPLED_ROTATION_DURATION_MS);
+                  finalRotation = calculateNonCoupledRotation(currentNonCoupledDirection, NON_COUPLED_ROTATION_DURATION_MS);
                 }
                 setRotation(finalRotation);
               } else {
                 // ユーザ連動モード: 頭部姿勢（基準との差分）を計算
-                headPoseDiff = {
-                  pitch: angles.rotateX - baseRotationRef.current.rotateX,
-                  yaw: angles.rotateY - baseRotationRef.current.rotateY,
-                  roll: angles.rotateZ - baseRotationRef.current.rotateZ,
-                };
                 setHeadPose(headPoseDiff);
 
                 // 頭部並行移動（基準との差分）を計算
-                headTranslationDiff = {
-                  tx: translation.tx - baseTranslationRef.current.tx,
-                  ty: translation.ty - baseTranslationRef.current.ty,
-                  tz: translation.tz - baseTranslationRef.current.tz,
-                };
                 setHeadTranslation(headTranslationDiff);
 
                 if (condition === 'rotate1' || condition === 'rotate2') {

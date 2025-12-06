@@ -30,11 +30,12 @@ const Experiment2Page = () => {
   const experiment1Condition: ExperimentCondition =
     condition === 'rotate' ? 'rotate1' : 'default';
 
-  const { rotation, headPose, headTranslation, screenRotation, latency, handleStart } = useFaceTracking({
+  const { rotation, headPose, headTranslation, screenRotation, latency, handleStart, nonCoupledRotationDirection, nonCoupledRotationState } = useFaceTracking({
     videoRef,
     detector,
     isModelLoaded,
     condition: experiment1Condition,
+    enableNonCoupledRotation: condition === 'rotate', // rotate条件の場合のみ非連動型回転を有効化
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
@@ -59,6 +60,8 @@ const Experiment2Page = () => {
     screenRotation,
     latency,
     isRecording,
+    nonCoupledRotationDirection,
+    nonCoupledRotationState,
   });
 
   // パラメータチェック
@@ -280,6 +283,15 @@ const Experiment2Page = () => {
   const manualData = getManual(manualType);
   const scenarios = getScenarios(manualType);
   const isDebugMode = participantIdStr === '999'; // デバッグモードの判定
+  const isPracticeMode = manualType === 'P'; // 練習モードの判定
+
+  // 練習終了ハンドラ
+  const handlePracticeEnd = () => {
+    // 録画停止
+    stopRecording();
+    // ホームページに戻る
+    router.push('/');
+  };
 
   // タスク完了画面
   if (isTaskCompleted && sessionLog) {
@@ -362,7 +374,9 @@ const Experiment2Page = () => {
           condition={experiment2Condition}
           manualId={manualType}
           isDebugMode={isDebugMode}
+          isPracticeMode={isPracticeMode}
           onComplete={handleCompleteTask}
+          onPracticeEnd={handlePracticeEnd}
         />
       )}
     </div>

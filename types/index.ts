@@ -20,7 +20,7 @@ export type ExperimentType = 'experiment1' | 'experiment2';
 export type Experiment2Condition = 'default' | 'rotate';
 
 // 実験2のマニュアル種別
-export type ManualType = 'A' | 'B';
+export type ManualType = 'A' | 'B' | 'P';
 
 // タイピングタスクのマッピング（条件→課題文）
 export type TypingTaskMapping = 'T1' | 'T2' | 'T3';
@@ -81,6 +81,12 @@ export interface ScreenRotation {
   roll: number;
 }
 
+// 非連動型回転の方向
+export type NonCoupledRotationDirection = 'Pitch' | 'PitchReverse' | 'Yaw' | 'YawReverse' | 'Roll' | 'RollReverse' | null;
+
+// 非連動型回転の状態
+export type NonCoupledRotationState = 'rotating' | 'paused' | null;
+
 // 姿勢ログエントリ（4Hzで記録）
 export interface PostureLogEntry {
   timestamp: number;
@@ -101,6 +107,9 @@ export interface PostureLogEntry {
   Screen_Roll: number;
   // 処理レイテンシ（ms）
   Latency_ms: number;
+  // 非連動型回転イベント（実験2のみ）
+  NonCoupled_Rotation_Direction: NonCoupledRotationDirection;
+  NonCoupled_Rotation_State: NonCoupledRotationState;
 }
 
 // フィッツタスク: クリックログ（旧型 - 後方互換性のため残す）

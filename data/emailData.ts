@@ -219,6 +219,74 @@ export const MANUAL_A: Manual = {
   ]
 };
 
+// Manual P: 練習用マニュアル
+export const MANUAL_P: Manual = {
+  id: 'P',
+  name: '練習用マニュアル',
+  categories: [
+    {
+      id: 'shipping_order',
+      title: '注文と発送',
+      content: `取扱商品:
+- キッチン用品、小さなインテリア雑貨、ステーショナリーなどの生活雑貨。
+
+配送業者:
+- 架空の宅配業者「テスト宅配便」のみを利用。
+
+発送タイミング:
+- 営業日15時までの注文: 原則として **翌営業日** に出荷。
+- 営業日15時以降の注文: 原則として **2営業日後** に出荷。
+
+お届けまでの日数の目安:
+- 関東・関西・中部: 出荷日の1〜2日後に配達。
+- それ以外の地域: 出荷日の2〜4日後に配達。
+
+送料:
+- 1回の注文金額が **2,000円（税込）以上** の場合: 送料無料。
+- 2,000円未満の場合: 一律 400円（税込）。
+
+配送先の変更:
+- 注文ステータスが「出荷準備中」の間は、カスタマーサポートから配送先住所の変更を受け付ける。
+- 注文ステータスが「出荷済み」になった後は、当店から配送先を変更することはできない。`
+    },
+    {
+      id: 'return_cancel',
+      title: '返品とキャンセル',
+      content: `キャンセル:
+- 「出荷準備中」まではキャンセル可能。
+- 「出荷済み」以降はキャンセル不可で、商品到着後の返品として扱う。
+
+返品受付期間:
+- 商品到着日から **7日以内** であれば返品可能。
+
+返品条件:
+- 未開封・未使用であること。
+- セール品も含めて、条件を満たせば返品可能。
+
+返品送料:
+- 当店のミス（誤配送・初期不良など）の場合: 返品送料は当店負担（着払いを案内）。
+- 顧客都合（イメージ違い・サイズ違いなど）の場合: 返品送料は顧客負担。`
+    },
+    {
+      id: 'coupon_point',
+      title: 'クーポンとポイント',
+      content: `クーポン:
+- メールで配布する「クーポンコード」を入力すると、注文金額が割引される。
+- 練習用マニュアルでは、すべてのクーポンは **10%OFF** で同じ条件とする。
+- 1回の注文で使えるクーポンは1つだけ。
+
+クーポンの使用条件:
+- クーポンの利用金額の下限はない（いくらの注文でも利用可能）。
+- 送料にはクーポン割引は適用されない（商品代金のみに割引を適用）。
+
+ポイント:
+- 本番マニュアルと異なり、練習用ではポイント制度は存在しないこととする。
+- 「ポイント」という表現が出てきた場合は、
+  「当店では現在ポイント制度を行っておりません」と案内する。`
+    }
+  ]
+};
+
 // Manual B: ライフスタイル雑貨通販サイト B（プレミアム会員制）
 export const MANUAL_B: Manual = {
   id: 'B',
@@ -888,18 +956,45 @@ export const SCENARIOS_B: EmailScenario[] = [
   }
 ];
 
+// Manual P用シナリオ（P01）
+export const SCENARIOS_P: EmailScenario[] = [
+  {
+    id: 'P01',
+    manualType: 'P',
+    categories: ['注文と発送'],
+    customerEmail: `受信日時: 2025-10-01 09:23
+件名: 【質問】いつ頃届きそうか教えてください
+差出人: 山田 花子 様
+
+本文:
+いつもお世話になっております。山田と申します。
+
+昨日（2025/9/30）の夕方にキッチンタイマーとマグカップを注文しました。
+注文時にお届け希望日を入力する画面がなかったのですが、
+だいたい何日後くらいに届く予定か教えていただけますでしょうか。
+
+私の自宅は神奈川県横浜市です。
+
+よろしくお願いいたします。`
+  }
+];
+
 // マニュアルを取得
 export function getManual(manualType: ManualType): Manual {
-  return manualType === 'A' ? MANUAL_A : MANUAL_B;
+  if (manualType === 'A') return MANUAL_A;
+  if (manualType === 'B') return MANUAL_B;
+  return MANUAL_P;
 }
 
 // シナリオを取得
 export function getScenarios(manualType: ManualType): EmailScenario[] {
-  return manualType === 'A' ? SCENARIOS_A : SCENARIOS_B;
+  if (manualType === 'A') return SCENARIOS_A;
+  if (manualType === 'B') return SCENARIOS_B;
+  return SCENARIOS_P;
 }
 
 // 特定のシナリオを取得
 export function getScenarioById(scenarioId: string): EmailScenario | undefined {
-  const allScenarios = [...SCENARIOS_A, ...SCENARIOS_B];
+  const allScenarios = [...SCENARIOS_A, ...SCENARIOS_B, ...SCENARIOS_P];
   return allScenarios.find(s => s.id === scenarioId);
 }

@@ -17,7 +17,9 @@ interface EmailTaskProps {
   condition: Experiment2Condition;
   manualId: ManualType;
   isDebugMode?: boolean; // デバッグモード（制限時間なし）
+  isPracticeMode?: boolean; // 練習モード
   onComplete: (sessionLog: EmailSessionLog) => void;
+  onPracticeEnd?: () => void; // 練習終了時のコールバック
 }
 
 const TASK_DURATION_MS = 30 * 60 * 1000; // 30分
@@ -29,7 +31,9 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
   condition,
   manualId,
   isDebugMode = false,
+  isPracticeMode = false,
   onComplete,
+  onPracticeEnd,
 }) => {
   const [currentScenarioIndex, setCurrentScenarioIndex] = useState(0);
   const [replyText, setReplyText] = useState('');
@@ -169,6 +173,13 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // 練習終了ハンドラ
+  const handlePracticeEnd = () => {
+    if (onPracticeEnd) {
+      onPracticeEnd();
+    }
+  };
+
   // テキストエリアに初期フォーカス
   useEffect(() => {
     if (textareaRef.current) {
@@ -255,9 +266,18 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
               </div>
 
               {/* 送信ボタン */}
-              <button onClick={handleSend} style={sendButtonStyle}>
-                この内容で送信
-              </button>
+              <div style={buttonContainerStyle}>
+                <button onClick={handleSend} style={sendButtonStyle}>
+                  この内容で送信
+                </button>
+
+                {/* 練習モードの場合は「本番のメールを送信する」ボタンを表示 */}
+                {isPracticeMode && (
+                  <button onClick={handlePracticeEnd} style={practiceEndButtonStyle}>
+                    送信する
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -322,6 +342,8 @@ const customerEmailContainerStyle: React.CSSProperties = {
   flexDirection: 'column',
   borderBottom: '2px solid #ddd',
   backgroundColor: 'white',
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const replyEmailContainerStyle: React.CSSProperties = {
@@ -329,6 +351,8 @@ const replyEmailContainerStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   backgroundColor: 'white',
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const panelHeaderStyle: React.CSSProperties = {
@@ -360,6 +384,7 @@ const replyFormStyle: React.CSSProperties = {
   flexDirection: 'column',
   padding: '20px',
   overflowY: 'auto',
+  minHeight: 0, // flexコンテナ内でのスクロールを有効にする
 };
 
 const fieldRowStyle: React.CSSProperties = {
@@ -386,13 +411,15 @@ const fieldInputStyle: React.CSSProperties = {
 };
 
 const bodyContainerStyle: React.CSSProperties = {
-  flex: 1,
   display: 'flex',
   flexDirection: 'column',
+  flex: 1, // 利用可能なスペースを使用
   marginBottom: '15px',
   border: '1px solid #ddd',
   borderRadius: '4px',
   backgroundColor: '#fafafa',
+  minHeight: 0, // flex内でのスクロールを有効化
+  overflow: 'hidden', // 子要素のオーバーフローを制御
 };
 
 const bodyHeaderStyle: React.CSSProperties = {
@@ -424,7 +451,17 @@ const textareaStyle: React.CSSProperties = {
   border: 'none',
   resize: 'none',
   outline: 'none',
-  minHeight: '150px',
+  minHeight: '100px', // 最小高さを小さくして柔軟性を向上
+  overflow: 'auto', // スクロール可能にする
+};
+
+const buttonContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: '12px',
+  flexShrink: 0, // ボタンが縮小されないようにする
+  marginTop: '10px', // 上部に余白を追加
 };
 
 const sendButtonStyle: React.CSSProperties = {
@@ -436,5 +473,15 @@ const sendButtonStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
-  alignSelf: 'flex-end',
+};
+
+const practiceEndButtonStyle: React.CSSProperties = {
+  padding: '12px 24px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  color: 'white',
+  backgroundColor: '#4caf50',
+  border: 'none',
+  borderRadius: '6px',
+  cursor: 'pointer',
 };

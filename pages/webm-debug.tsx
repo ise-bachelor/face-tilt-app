@@ -261,6 +261,9 @@ const WebmDebugPage = () => {
             Screen_Yaw: screenRotation.yaw,
             Screen_Roll: screenRotation.roll,
             Latency_ms: processingTime,
+            // 非連動型回転イベントのデフォルト値（該当しない場合は null）
+            NonCoupled_Rotation_Direction: null,
+            NonCoupled_Rotation_State: null,
           };
 
           tempLogs.push(logEntry);
@@ -306,6 +309,8 @@ const WebmDebugPage = () => {
       'Screen_Yaw',
       'Screen_Roll',
       'Latency_ms',
+      'NonCoupled_Rotation_Direction',
+      'NonCoupled_Rotation_State',
     ];
 
     // CSVボディ
@@ -325,6 +330,8 @@ const WebmDebugPage = () => {
         log.Screen_Yaw.toFixed(4),
         log.Screen_Roll.toFixed(4),
         log.Latency_ms.toFixed(2),
+        (log.NonCoupled_Rotation_Direction ?? '').toString(),
+        (log.NonCoupled_Rotation_State ?? '').toString(),
       ].join(',')
     );
 

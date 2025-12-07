@@ -32,8 +32,8 @@ const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
 
 // 非連動型回転のタイミング
 const NON_COUPLED_ROTATION_INTERVAL_MS = 3 * 60 * 1000; // 本番3分
-const NON_COUPLED_ROTATION_DURATION_MS = 3000; // 3秒
-const NON_COUPLED_ROTATION_PAUSE_MS = 1000; // 1秒
+const NON_COUPLED_ROTATION_DURATION_MS = 5000; // 5秒
+const NON_COUPLED_ROTATION_PAUSE_MS = 5000; // 5秒
 
 // 値を指定範囲にクランプする関数
 const clamp = (value: number, min: number, max: number): number => {
@@ -51,7 +51,7 @@ const calculateNonCoupledRotation = (
 
   // 10秒かけて60度まで回転
   const progress = Math.min(elapsedTime / NON_COUPLED_ROTATION_DURATION_MS, 1.0);
-  const angle = progress * MAX_ROTATION_ANGLE;
+  const angle = progress * MAX_ROTATION_ANGLE / 2.0;
 
   const rotation: Rotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
 
@@ -263,20 +263,65 @@ export const useFaceTracking = ({
               const currentNonCoupledDirection = nonCoupledRotationDirectionRef.current;
               const currentNonCoupledState = nonCoupledRotationStateRef.current;
 
-              // 非連動型回転が有効な場合はそれを優先（ユーザ姿勢は記録だけ行い、回転には反映しない）
+              // 非連動型回転が有効な場合はそれを優先（ただし回転方向以外はユーザ姿勢に連動）
               if (currentNonCoupledDirection && currentNonCoupledState) {
                 setHeadPose(headPoseDiff);
                 setHeadTranslation(headTranslationDiff);
 
                 const elapsedTime = Date.now() - nonCoupledRotationStartTimeRef.current;
 
+                let nonCoupledRotation: Rotation;
                 if (currentNonCoupledState === 'rotating') {
                   // 回転中（10秒かけて60度まで）
-                  finalRotation = calculateNonCoupledRotation(currentNonCoupledDirection, elapsedTime);
+                  nonCoupledRotation = calculateNonCoupledRotation(currentNonCoupledDirection, elapsedTime);
                 } else {
                   // 停止中（最大角度を維持）
-                  finalRotation = calculateNonCoupledRotation(currentNonCoupledDirection, NON_COUPLED_ROTATION_DURATION_MS);
+                  nonCoupledRotation = calculateNonCoupledRotation(currentNonCoupledDirection, NON_COUPLED_ROTATION_DURATION_MS);
                 }
+
+                // 回転方向以外をユーザの頭部姿勢に連動させる
+                const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
+                
+                // 非連動方向に基づいて、ユーザ連動軸を決定
+                switch (currentNonCoupledDirection) {
+                  case 'Pitch':
+                  case 'PitchReverse':
+                    // Pitch方向が非連動の場合、Yaw と Roll をユーザに連動
+                    finalRotation = {
+                      rotateX: nonCoupledRotation.rotateX,
+                      rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
+                      rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
+                    };
+                    break;
+                  case 'Yaw':
+                  case 'YawReverse':
+                    // Yaw方向が非連動の場合、Pitch と Roll をユーザに連動
+                    finalRotation = {
+                      rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
+                      rotateY: nonCoupledRotation.rotateY,
+                      rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
+                    };
+                    break;
+                  case 'Roll':
+                  case 'RollReverse':
+                    // Roll方向が非連動の場合、Pitch と Yaw をユーザに連動
+                    finalRotation = {
+                      rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
+                      rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
+                      rotateZ: nonCoupledRotation.rotateZ,
+                    };
+                    break;
+                  default:
+                    finalRotation = nonCoupledRotation;
+                }
+
+                // 回転値をクランプ
+                finalRotation = {
+                  rotateX: clamp(finalRotation.rotateX, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                  rotateY: clamp(finalRotation.rotateY, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                  rotateZ: clamp(finalRotation.rotateZ, -MAX_ROTATION_ANGLE, MAX_ROTATION_ANGLE),
+                };
+
                 setRotation(finalRotation);
               } else {
                 // ユーザ連動モード: 頭部姿勢（基準との差分）を計算

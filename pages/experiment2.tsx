@@ -46,15 +46,17 @@ const Experiment2Page = () => {
   const { isRecording, cameraBlob, startRecording, stopRecording } = useRecording(stream);
 
   // 姿勢ログのセッション情報を構築
-  const postureLogSession = {
+  // 注: sessionはisRecordingの状態に同期させる必要がある
+  // isRecordingがtrueの場合のみログを記録するため
+  const postureLogSession = isRecording ? {
     participant_id: (participantId as string) || 'unknown',
     condition: experiment1Condition,
     task_name: 'experiment2' as const,
     start_time: Date.now(),
-  };
+  } : null;
 
   const { logs, exportLogsAsCSV } = usePostureLog({
-    session: isTaskStarted ? postureLogSession : null,
+    session: postureLogSession,
     headPose,
     headTranslation,
     screenRotation,

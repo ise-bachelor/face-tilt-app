@@ -25,6 +25,7 @@ export const usePostureLog = ({
   const [logs, setLogs] = useState<PostureLogEntry[]>([]);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
 
   // 最新の値を参照するためのref
   const headPoseRef = useRef(headPose);
@@ -46,14 +47,15 @@ export const usePostureLog = ({
     nonCoupledRotationStateRef.current = nonCoupledRotationState;
   }, [headPose, headTranslation, screenRotation, latency, session, nonCoupledRotationDirection, nonCoupledRotationState]);
 
+  // isRecordingの状態変化を監視して、intervalの開始/停止を制御
   useEffect(() => {
-    if (isRecording && session) {
-      // 開始時刻を設定（最初のログ記録時）
-      if (startTimeRef.current === null) {
-        startTimeRef.current = Date.now();
-      }
+    // 前の状態から状態が変わった場合のみ処理
+    if (isRecording && !isRecordingRef.current) {
+      // 録画開始：intervalを設定
+      console.log("Starting posture log interval");
+      isRecordingRef.current = true;
+      startTimeRef.current = Date.now();
 
-      // 4Hz = 250ms間隔でログを記録
       intervalIdRef.current = setInterval(() => {
         const currentSession = sessionRef.current;
         if (!currentSession || startTimeRef.current === null) return;
@@ -61,7 +63,7 @@ export const usePostureLog = ({
         // 開始時からの経過時間(ms)を計算
         const elapsedTimeMs = Date.now() - startTimeRef.current;
 
-        console.log("Logging posture data...");
+        console.log("Logging posture data...", elapsedTimeMs);
         const logEntry: PostureLogEntry = {
           timestamp: elapsedTimeMs, // 開始時からの経過時間(ms)
           participant_id: currentSession.participant_id,
@@ -88,8 +90,14 @@ export const usePostureLog = ({
 
         setLogs((prevLogs) => [...prevLogs, logEntry]);
       }, 250); // 4Hz = 250ms
-    } else {
-      // 録画停止時に開始時刻をリセット
+    } else if (!isRecording && isRecordingRef.current) {
+      // 録画停止：intervalをクリア
+      console.log("Stopping posture log interval");
+      isRecordingRef.current = false;
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
       startTimeRef.current = null;
     }
 
@@ -98,7 +106,7 @@ export const usePostureLog = ({
         clearInterval(intervalIdRef.current);
       }
     };
-  }, [isRecording, session]); // 依存配列からheadPose等を削除
+  }, [isRecording]);
 
   const clearLogs = () => {
     setLogs([]);

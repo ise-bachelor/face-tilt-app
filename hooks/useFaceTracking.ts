@@ -31,8 +31,8 @@ const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
 ];
 
 // 非連動型回転のタイミング
-const NON_COUPLED_ROTATION_INTERVAL_MS = 5 * 60 * 1000 / 6 ; // 本番3分
-const NON_COUPLED_ROTATION_DURATION_MS = 5000; // 5秒
+const NON_COUPLED_ROTATION_INTERVAL_MS = 5 * 60 * 1000 ; // 本番5分
+const NON_COUPLED_ROTATION_DURATION_MS = 8000; // 8秒
 const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
 
 // 値を指定範囲にクランプする関数
@@ -51,7 +51,7 @@ const calculateNonCoupledRotation = (
 
   // 10秒かけて60度まで回転
   const progress = Math.min(elapsedTime / NON_COUPLED_ROTATION_DURATION_MS, 1.0);
-  const angle = progress * MAX_ROTATION_ANGLE * 3.0 /4.0;
+  const angle = progress * MAX_ROTATION_ANGLE / 2.0;
 
   const rotation: Rotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
 
@@ -280,35 +280,39 @@ export const useFaceTracking = ({
                 }
 
                 // 回転方向以外をユーザの頭部姿勢に連動させる
+                // 回転方向はユーザの頭部角度と非連動的に決まる角度の和を使用
                 const rotationMultiplier = condition === 'rotate2' ? 2.0 : 1.0;
                 
                 // 非連動方向に基づいて、ユーザ連動軸を決定
                 switch (currentNonCoupledDirection) {
                   case 'Pitch':
                   case 'PitchReverse':
-                    // Pitch方向が非連動の場合、Yaw と Roll をユーザに連動
+                    // Pitch方向が非連動の場合、rotateX = 非連動角度 + ユーザPitch
+                    // Yaw と Roll はユーザに連動
                     finalRotation = {
-                      rotateX: nonCoupledRotation.rotateX,
+                      rotateX: nonCoupledRotation.rotateX + (headPoseDiff.pitch * ROTATION_SENSITIVITY),
                       rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
                       rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
                     };
                     break;
                   case 'Yaw':
                   case 'YawReverse':
-                    // Yaw方向が非連動の場合、Pitch と Roll をユーザに連動
+                    // Yaw方向が非連動の場合、rotateY = 非連動角度 + ユーザYaw
+                    // Pitch と Roll はユーザに連動
                     finalRotation = {
                       rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
-                      rotateY: nonCoupledRotation.rotateY,
+                      rotateY: nonCoupledRotation.rotateY + (headPoseDiff.yaw * ROTATION_SENSITIVITY + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX),
                       rotateZ: (headPoseDiff.roll * ROTATION_SENSITIVITY) * rotationMultiplier,
                     };
                     break;
                   case 'Roll':
                   case 'RollReverse':
-                    // Roll方向が非連動の場合、Pitch と Yaw をユーザに連動
+                    // Roll方向が非連動の場合、rotateZ = 非連動角度 + ユーザRoll
+                    // Pitch と Yaw はユーザに連動
                     finalRotation = {
                       rotateX: (headPoseDiff.pitch * ROTATION_SENSITIVITY + headTranslationDiff.ty * TRANSLATION_SENSITIVITY_TY + headTranslationDiff.tz * TRANSLATION_SENSITIVITY_TZ) * rotationMultiplier,
                       rotateY: (headPoseDiff.yaw * ROTATION_SENSITIVITY + headTranslationDiff.tx * TRANSLATION_SENSITIVITY_TX) * rotationMultiplier,
-                      rotateZ: nonCoupledRotation.rotateZ,
+                      rotateZ: nonCoupledRotation.rotateZ + (headPoseDiff.roll * ROTATION_SENSITIVITY),
                     };
                     break;
                   default:

@@ -31,9 +31,9 @@ const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
 ];
 
 // 非連動型回転のタイミング
-const NON_COUPLED_ROTATION_INTERVAL_MS = 3 * 60 * 1000; // 本番3分
+const NON_COUPLED_ROTATION_INTERVAL_MS = 5 * 60 * 1000 / 6 ; // 本番3分
 const NON_COUPLED_ROTATION_DURATION_MS = 5000; // 5秒
-const NON_COUPLED_ROTATION_PAUSE_MS = 5000; // 5秒
+const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
 
 // 値を指定範囲にクランプする関数
 const clamp = (value: number, min: number, max: number): number => {
@@ -51,7 +51,7 @@ const calculateNonCoupledRotation = (
 
   // 10秒かけて60度まで回転
   const progress = Math.min(elapsedTime / NON_COUPLED_ROTATION_DURATION_MS, 1.0);
-  const angle = progress * MAX_ROTATION_ANGLE / 2.0;
+  const angle = progress * MAX_ROTATION_ANGLE * 3.0 /4.0;
 
   const rotation: Rotation = { rotateX: 0, rotateY: 0, rotateZ: 0 };
 

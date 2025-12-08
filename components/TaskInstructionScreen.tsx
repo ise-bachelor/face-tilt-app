@@ -41,7 +41,7 @@ const startContainerStyle: React.CSSProperties = {
   backgroundColor: 'white',
   borderRadius: '12px',
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-  maxWidth: '600px',
+  maxWidth: '650px',
   margin: '0 auto',
 };
 
@@ -56,7 +56,7 @@ const descriptionStyle: React.CSSProperties = {
   fontSize: '18px',
   color: '#666',
   marginBottom: '20px',
-  textAlign: 'center',
+  textAlign: 'left',
   lineHeight: '1.6',
 };
 
@@ -64,7 +64,7 @@ const additionalInfoStyle: React.CSSProperties = {
   fontSize: '18px',
   color: '#666',
   marginBottom: '20px',
-  textAlign: 'center',
+  textAlign: 'left',
   lineHeight: '1.6',
 };
 

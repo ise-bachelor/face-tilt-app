@@ -267,9 +267,11 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
 
               {/* 送信ボタン */}
               <div style={buttonContainerStyle}>
-                <button onClick={handleSend} style={sendButtonStyle}>
-                  この内容で送信
-                </button>
+                {!isPracticeMode && (
+                  <button onClick={handleSend} style={sendButtonStyle}>
+                    送信する
+                  </button>
+                )}
 
                 {/* 練習モードの場合は「本番のメールを送信する」ボタンを表示 */}
                 {isPracticeMode && (

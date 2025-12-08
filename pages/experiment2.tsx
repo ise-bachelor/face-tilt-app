@@ -103,6 +103,9 @@ const Experiment2Page = () => {
   };
 
   const handleCompleteTask = (log: EmailSessionLog) => {
+    console.log('handleCompleteTask called with log:', log);
+    console.log('handleCompleteTask - scenario_logs.length:', log.scenario_logs.length);
+    
     // 録画停止
     stopRecording();
 
@@ -201,6 +204,9 @@ const Experiment2Page = () => {
       'paste_count'
     ].join(',');
 
+    console.log('generateScenarioLogsCSV - log.scenario_logs:', log.scenario_logs);
+    console.log('generateScenarioLogsCSV - number of scenarios:', log.scenario_logs.length);
+
     const rows = log.scenario_logs.map(scenario => {
       const escapedText = `"${scenario.reply_body_text.replace(/"/g, '""')}"`;
       return [
@@ -222,7 +228,9 @@ const Experiment2Page = () => {
       ].join(',');
     });
 
-    return [headers, ...rows].join('\n');
+    const result = [headers, ...rows].join('\n');
+    console.log('generateScenarioLogsCSV - result length:', result.length);
+    return result;
   };
 
   // キー入力ログCSV生成
@@ -241,7 +249,12 @@ const Experiment2Page = () => {
     ].join(',');
 
     const rows: string[] = [];
-    log.scenario_logs.forEach(scenario => {
+    
+    console.log('generateKeyLogsCSV - log.scenario_logs:', log.scenario_logs);
+    console.log('generateKeyLogsCSV - number of scenarios:', log.scenario_logs.length);
+    
+    log.scenario_logs.forEach((scenario, idx) => {
+      console.log(`generateKeyLogsCSV - scenario[${idx}].key_logs.length:`, scenario.key_logs.length);
       scenario.key_logs.forEach(keyLog => {
         const escapedKey = keyLog.key.includes(',') ? `"${keyLog.key}"` : keyLog.key;
         rows.push([
@@ -259,6 +272,7 @@ const Experiment2Page = () => {
       });
     });
 
+    console.log('generateKeyLogsCSV - total rows:', rows.length);
     return [headers, ...rows].join('\n');
   };
 

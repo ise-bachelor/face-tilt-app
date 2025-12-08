@@ -22,7 +22,7 @@ interface EmailTaskProps {
   onPracticeEnd?: () => void; // 練習終了時のコールバック
 }
 
-const TASK_DURATION_MS = 30 * 60 * 1000; // 30分
+const TASK_DURATION_MS = 25 * 60 * 1000; // 25分
 
 export const EmailTask: React.FC<EmailTaskProps> = ({
   manual,

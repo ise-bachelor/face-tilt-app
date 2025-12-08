@@ -9,6 +9,7 @@ type UseFaceTrackingArgs = {
   isModelLoaded: boolean;
   condition?: ExperimentCondition;
   enableNonCoupledRotation?: boolean; // 非連動型回転を有効にするか
+  participantId?: string; // 参加者ID（非連動型回転用）
 };
 
 // 感度係数
@@ -20,18 +21,20 @@ const TRANSLATION_SENSITIVITY_TZ = 0.005;   // 前後移動の感度係数
 // 画面回転の最大角度
 const MAX_ROTATION_ANGLE = 60;
 
-// 非連動型回転の順序
-const NON_COUPLED_ROTATION_SEQUENCE: NonCoupledRotationDirection[] = [
-  'Pitch',
-  'RollReverse',
-  'Yaw',
-  'PitchReverse',
-  'Roll',
-  'YawReverse',
-];
+// 非連動型回転のテーブル（参加者ごと、回転回数1-12）
+const NON_COUPLED_ROTATION_TABLE: Record<number, NonCoupledRotationDirection[]> = {
+  1: ['YawReverse', 'RollReverse', 'Pitch', 'Roll', 'Yaw', 'PitchReverse', 'YawReverse', 'RollReverse', 'Pitch', 'Roll', 'Yaw', 'PitchReverse'],
+  2: ['Roll', 'PitchReverse', 'YawReverse', 'RollReverse', 'Pitch', 'Yaw', 'Roll', 'PitchReverse', 'YawReverse', 'RollReverse', 'Pitch', 'Yaw'],
+  3: ['Pitch', 'YawReverse', 'Roll', 'PitchReverse', 'RollReverse', 'Yaw', 'Pitch', 'YawReverse', 'Roll', 'PitchReverse', 'RollReverse', 'Yaw'],
+  4: ['PitchReverse', 'Yaw', 'RollReverse', 'YawReverse', 'Roll', 'Pitch', 'YawReverse', 'RollReverse', 'PitchReverse', 'Yaw', 'Pitch', 'Roll'],
+  5: ['YawReverse', 'RollReverse', 'PitchReverse', 'Yaw', 'Pitch', 'Roll', 'PitchReverse', 'Yaw', 'RollReverse', 'YawReverse', 'Roll', 'Pitch'],
+  6: ['Yaw', 'Roll', 'Pitch', 'YawReverse', 'RollReverse', 'PitchReverse', 'Yaw', 'Roll', 'Pitch', 'YawReverse', 'PitchReverse', 'RollReverse'],
+  7: ['Roll', 'PitchReverse', 'Yaw', 'Pitch', 'RollReverse', 'YawReverse', 'Roll', 'PitchReverse', 'Yaw', 'Pitch', 'RollReverse', 'YawReverse'],
+  8: ['RollReverse', 'Pitch', 'Yaw', 'Roll', 'YawReverse', 'PitchReverse', 'RollReverse', 'Pitch', 'Yaw', 'Roll', 'YawReverse', 'PitchReverse'],
+};
 
 // 非連動型回転のタイミング
-const NON_COUPLED_ROTATION_INTERVAL_MS = 5 * 60 * 1000 ; // 本番5分
+const NON_COUPLED_ROTATION_INTERVAL_MS = 2 * 60 * 1000; // 2分ごと
 const NON_COUPLED_ROTATION_DURATION_MS = 8000; // 8秒
 const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
 
@@ -85,6 +88,7 @@ export const useFaceTracking = ({
   isModelLoaded,
   condition = 'rotate1',
   enableNonCoupledRotation = false,
+  participantId = '',
 }: UseFaceTrackingArgs) => {
   const [rotation, setRotation] = useState<Rotation>({
     rotateX: 0,
@@ -154,12 +158,23 @@ export const useFaceTracking = ({
     };
   };
 
+  // 参加者IDから参加者番号を取得（1-8でループ）
+  const getParticipantNumber = (): number => {
+    if (!participantId) return 1;
+    const match = participantId.match(/\d+/);
+    if (!match) return 1;
+    const number = parseInt(match[0], 10);
+    return ((number - 1) % 8) + 1; // 1-8でループ
+  };
+
   // 非連動型回転を開始する関数
   const startNonCoupledRotation = () => {
     if (!enableNonCoupledRotation) return;
 
-    const direction = NON_COUPLED_ROTATION_SEQUENCE[nonCoupledRotationSequenceRef.current % NON_COUPLED_ROTATION_SEQUENCE.length];
-    console.log(`非連動型回転開始: ${direction}`);
+    const participantNumber = getParticipantNumber();
+    const rotationIndex = nonCoupledRotationSequenceRef.current % 12; // 12個のシーケンス
+    const direction = NON_COUPLED_ROTATION_TABLE[participantNumber]?.[rotationIndex] || null;
+    console.log(`非連動型回転開始: 参加者${participantNumber}, 回転${rotationIndex + 1}: ${direction}`);
 
     setNonCoupledRotationDirection(direction);
     setNonCoupledRotationState('rotating');

@@ -36,6 +36,7 @@ const Experiment2Page = () => {
     isModelLoaded,
     condition: experiment1Condition,
     enableNonCoupledRotation: condition === 'rotate', // rotate条件の場合のみ非連動型回転を有効化
+    participantId: typeof participantId === 'string' ? participantId : '', // 参加者IDを渡す
   });
 
   const [isTaskStarted, setIsTaskStarted] = useState(false);
@@ -369,7 +370,7 @@ const Experiment2Page = () => {
                 <li>右画面下部: 返信メール作成エリア</li>
               </ul>
               <ul>
-                <li>30分の制限時間内にできるだけ多くのメールに返信してください</li>
+                <li>25分の制限時間内にできるだけ多くのメールに返信してください</li>
                 <li>実際のお客様に返信することを意識して、丁寧かつ親切な内容になることを心がけてください</li>
                 <li>マニュアルだけでは確定できないメールについては、回答できる部分にのみ回答し、わからない箇所は「確認に時間がかかる」や「この情報を教えてほしい」といった返信をしてください</li>
                 <li>挨拶文は自動で入力されます（回答部分のみ記入）</li>

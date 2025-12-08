@@ -71,29 +71,39 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
 
   // タスク完了処理
   const completeTask = (endReason: 'time_up' | 'empty_send_3times') => {
+    console.log('EmailTask.completeTask called with endReason:', endReason);
+    console.log('EmailTask.completeTask - scenarioLogs.length:', scenarioLogs.length);
+    console.log('EmailTask.completeTask - scenarioLogs:', scenarioLogs);
+    
+    const currentTime = Date.now();
+    const relativeTaskEndTime = currentTime - taskStartTime; // タスク開始からの経過時間
+    
     const sessionLog: EmailSessionLog = {
       participant_id: participantId,
       condition,
       manual_id: manualId,
-      task_start_time: taskStartTime,
-      task_end_time: Date.now(),
+      task_start_time: 0, // 相対時間: タスク開始は 0ms
+      task_end_time: relativeTaskEndTime, // 相対時間: 経過時間
       end_reason: endReason,
       scenarios_completed: scenarioLogs.length,
       scenario_logs: scenarioLogs,
     };
+    
+    console.log('EmailTask.completeTask - sessionLog being passed:', sessionLog);
     onComplete(sessionLog);
   };
 
   // キー入力ハンドラ
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const timestamp = Date.now();
+    const currentTime = Date.now();
+    const relativeTime = currentTime - taskStartTime; // タスク開始からの経過時間
     const isBackspace = e.key === 'Backspace';
     const isDelete = e.key === 'Delete';
     const isPaste = e.ctrlKey && e.key === 'v';
 
     const keyLog: EmailKeyLog = {
       key: e.key,
-      timestamp_ms: timestamp,
+      timestamp_ms: relativeTime,
       is_backspace: isBackspace,
       is_delete: isDelete,
       is_paste: isPaste,
@@ -109,7 +119,11 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
 
   // 送信ボタンのハンドラ
   const handleSend = () => {
-    const sendTime = Date.now();
+    const currentTime = Date.now();
+    const sendTimeRelative = currentTime - taskStartTime; // タスク開始からの相対時間
+    const scenarioStartTimeRelative = scenarioStartTime - taskStartTime; // シナリオ開始時刻の相対時間
+    const durationMs = sendTimeRelative - scenarioStartTimeRelative; // 期間を相対時間で計算
+    
     const isEmpty = replyText.trim().length === 0;
 
     // 空送信のカウント
@@ -133,9 +147,9 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
       manual_id: manualId,
       scenario_id: currentScenario.id,
       scenario_order_index: currentScenarioIndex,
-      reply_start_time: scenarioStartTime,
-      reply_send_time: sendTime,
-      reply_duration_ms: sendTime - scenarioStartTime,
+      reply_start_time: scenarioStartTimeRelative,
+      reply_send_time: sendTimeRelative,
+      reply_duration_ms: durationMs,
       reply_body_text: replyText,
       reply_body_length_chars: replyText.length,
       is_empty_body: isEmpty,
@@ -146,7 +160,11 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
       key_logs: keyLogs,
     };
 
-    setScenarioLogs(prev => [...prev, scenarioLog]);
+    console.log('EmailTask.handleSend - before setScenarioLogs:', { scenarioLog, currentCount: scenarioLogs.length });
+    setScenarioLogs(prev => {
+      console.log('EmailTask.handleSend - setScenarioLogs callback, prev.length:', prev.length);
+      return [...prev, scenarioLog];
+    });
 
     // 次のシナリオへ
     if (currentScenarioIndex < scenarios.length - 1) {

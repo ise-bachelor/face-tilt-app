@@ -34,7 +34,7 @@ const NON_COUPLED_ROTATION_TABLE: Record<number, NonCoupledRotationDirection[]> 
 };
 
 // 非連動型回転のタイミング
-const NON_COUPLED_ROTATION_INTERVAL_MS = 2 * 60 * 1000 / 10 ; // 2分ごと
+const NON_COUPLED_ROTATION_INTERVAL_MS = 2 * 60 * 1000; // 2分ごと
 const NON_COUPLED_ROTATION_DURATION_MS = 8000; // 8秒
 const NON_COUPLED_ROTATION_PAUSE_MS = 2000; // 2秒
 

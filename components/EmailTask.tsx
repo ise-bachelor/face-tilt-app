@@ -22,8 +22,7 @@ interface EmailTaskProps {
   onPracticeEnd?: () => void; // 練習終了時のコールバック
 }
 
-// const TASK_DURATION_MS = 25 * 60 * 1000; // 25分
-const TASK_DURATION_MS = 5 * 1000;
+const TASK_DURATION_MS = 25 * 60 * 1000; // 25分
 
 export const EmailTask: React.FC<EmailTaskProps> = ({
   manual,
@@ -130,6 +129,22 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
     setReplyText(e.target.value);
   };
 
+  // ペースト検出ハンドラ
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const currentTime = Date.now();
+    const relativeTime = currentTime - taskStartTime;
+
+    const keyLog: EmailKeyLog = {
+      key: 'Paste',
+      timestamp_ms: relativeTime,
+      is_backspace: false,
+      is_delete: false,
+      is_paste: true,
+    };
+
+    setKeyLogs(prev => [...prev, keyLog]);
+  };
+
   // 送信ボタンのハンドラ
   const handleSend = () => {
     const currentTime = Date.now();
@@ -166,11 +181,11 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
       reply_body_text: replyText,
       reply_body_length_chars: replyText.length,
       is_empty_body: isEmpty,
-      keypress_count_total: keyLogs.length,
-      backspace_count: keyLogs.filter(log => log.is_backspace).length,
-      delete_count: keyLogs.filter(log => log.is_delete).length,
-      paste_count: keyLogs.filter(log => log.is_paste).length,
-      key_logs: keyLogs,
+      keypress_count_total: keyLogsRef.current.length,
+      backspace_count: keyLogsRef.current.filter(log => log.is_backspace).length,
+      delete_count: keyLogsRef.current.filter(log => log.is_delete).length,
+      paste_count: keyLogsRef.current.filter(log => log.is_paste).length,
+      key_logs: keyLogsRef.current,
     };
 
     console.log('EmailTask.handleSend - before setScenarioLogs:', { scenarioLog, currentCount: scenarioLogs.length });
@@ -288,6 +303,7 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
                   value={replyText}
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   style={textareaStyle}
                   placeholder="回答内容を入力してください..."
                 />

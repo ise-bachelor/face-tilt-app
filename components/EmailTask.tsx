@@ -22,7 +22,8 @@ interface EmailTaskProps {
   onPracticeEnd?: () => void; // 練習終了時のコールバック
 }
 
-const TASK_DURATION_MS = 25 * 60 * 1000; // 25分
+// const TASK_DURATION_MS = 25 * 60 * 1000; // 25分
+const TASK_DURATION_MS = 5 * 1000;
 
 export const EmailTask: React.FC<EmailTaskProps> = ({
   manual,
@@ -45,8 +46,20 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
   const [consecutiveEmptySends, setConsecutiveEmptySends] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scenarioLogsRef = useRef<EmailScenarioLog[]>([]);
+  const keyLogsRef = useRef<EmailKeyLog[]>([]);
 
   const currentScenario = scenarios[currentScenarioIndex];
+
+  // keyLogsの更新を同期
+  useEffect(() => {
+    keyLogsRef.current = keyLogs;
+  }, [keyLogs]);
+
+  // scenarioLogsの更新を同期
+  useEffect(() => {
+    scenarioLogsRef.current = scenarioLogs;
+  }, [scenarioLogs]);
 
   // 30分タイマー（デバッグモードでは無効）
   useEffect(() => {
@@ -72,8 +85,8 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
   // タスク完了処理
   const completeTask = (endReason: 'time_up' | 'empty_send_3times') => {
     console.log('EmailTask.completeTask called with endReason:', endReason);
-    console.log('EmailTask.completeTask - scenarioLogs.length:', scenarioLogs.length);
-    console.log('EmailTask.completeTask - scenarioLogs:', scenarioLogs);
+    console.log('EmailTask.completeTask - scenarioLogs.length:', scenarioLogsRef.current.length);
+    console.log('EmailTask.completeTask - scenarioLogs:', scenarioLogsRef.current);
     
     const currentTime = Date.now();
     const relativeTaskEndTime = currentTime - taskStartTime; // タスク開始からの経過時間
@@ -85,8 +98,8 @@ export const EmailTask: React.FC<EmailTaskProps> = ({
       task_start_time: 0, // 相対時間: タスク開始は 0ms
       task_end_time: relativeTaskEndTime, // 相対時間: 経過時間
       end_reason: endReason,
-      scenarios_completed: scenarioLogs.length,
-      scenario_logs: scenarioLogs,
+      scenarios_completed: scenarioLogsRef.current.length,
+      scenario_logs: scenarioLogsRef.current,
     };
     
     console.log('EmailTask.completeTask - sessionLog being passed:', sessionLog);

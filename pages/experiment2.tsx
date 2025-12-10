@@ -75,6 +75,29 @@ const Experiment2Page = () => {
     }
   }, [condition, manual, participantId, router]);
 
+  // ブラウザバック禁止（タスク実行中のみ）
+  useEffect(() => {
+    if (!isTaskStarted || isTaskCompleted) {
+      return; // タスク開始前または完了後は何もしない
+    }
+
+    // popstate イベント（ブラウザバック試行）をキャッチ
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      // 履歴スタックに現在のページを再度追加（戻るのを防ぐ）
+      window.history.pushState(null, '');
+    };
+
+    // 履歴スタックに初期エントリーを追加
+    window.history.pushState(null, '');
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isTaskStarted, isTaskCompleted]);
+
   // カメラストリームをビデオ要素に設定
   useEffect(() => {
     const videoElement = videoRef.current;
